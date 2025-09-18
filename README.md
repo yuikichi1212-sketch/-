@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>ブラウザ版マイクラ風</title>
   <style>
-    body { margin: 0; overflow: hidden; }
+    body { margin: 0; overflow: hidden; background: #000; }
     canvas { display: block; }
     #info {
       position: absolute;
@@ -41,8 +41,6 @@
       scene.background = new THREE.Color(0x87ceeb);
 
       camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-      camera.position.set(8, 10, 12);
-      camera.lookAt(8, 0, 8);
 
       renderer = new THREE.WebGLRenderer({antialias:true});
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -51,6 +49,10 @@
       controls = new THREE.PointerLockControls(camera, renderer.domElement);
       document.body.addEventListener('click', () => { controls.lock(); });
       scene.add(controls.getObject());
+
+      // 初期位置と向き
+      controls.getObject().position.set(8, 5, 20); // プレイヤー位置
+      camera.lookAt(8, 0, 8); // 地面の中央を見る
 
       raycaster = new THREE.Raycaster();
 
@@ -67,9 +69,9 @@
       for(let x=0;x<16;x++){
         for(let z=0;z<16;z++){
           const cube = new THREE.Mesh(geometry, grassMat);
-          cube.position.set(x, -1, z);
+          cube.position.set(x, 0, z); // y=0 に地面
           scene.add(cube);
-          blocks[`${x},-1,${z}`] = cube;
+          blocks[`${x},0,${z}`] = cube;
         }
       }
 
