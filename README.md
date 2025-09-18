@@ -15,7 +15,6 @@
 <body>
   <div id="info">クリックで視点ロック<br>WASD移動<br>左クリック: 壊す / 右クリック: 置く</div>
 
-  <!-- Three.js & PointerLockControls -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/controls/PointerLockControls.js"></script>
 
@@ -33,26 +32,27 @@
       scene.background = new THREE.Color(0x87ceeb); // 空
 
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.set(8, 10, 8);
+      camera.position.set(8, 15, 25);   // ← 高めの位置
+      camera.lookAt(8, 0, 8);           // ← 地面の中央を見る
 
       renderer = new THREE.WebGLRenderer();
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
 
-      // マウス視点操作
+      // 視点操作
       controls = new THREE.PointerLockControls(camera, document.body);
-      document.body.addEventListener('click', () => { controls.lock(); });
+      document.body.addEventListener('click', () => controls.lock());
       scene.add(controls.getObject());
 
       raycaster = new THREE.Raycaster();
 
       // 光源
       const light = new THREE.DirectionalLight(0xffffff, 1);
-      light.position.set(10, 20, 10);
+      light.position.set(30, 50, 30);
       scene.add(light);
-      scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+      scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 
-      // 地面（16×16ブロック）
+      // 地面
       const groundGeo = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
       const groundMat = new THREE.MeshStandardMaterial({ color: 0x228B22 });
       for (let x = 0; x < 16; x++) {
@@ -67,15 +67,15 @@
       // イベント
       window.addEventListener('resize', onWindowResize);
       document.addEventListener('mousedown', onMouseDown);
-      document.addEventListener('contextmenu', e => e.preventDefault()); // 右クリックメニュー禁止
+      document.addEventListener('contextmenu', e => e.preventDefault());
 
-      // キーボード移動
+      // 移動処理
       const keys = {};
-      document.addEventListener('keydown', e => { keys[e.code] = true; });
-      document.addEventListener('keyup', e => { keys[e.code] = false; });
+      document.addEventListener('keydown', e => keys[e.code] = true);
+      document.addEventListener('keyup', e => keys[e.code] = false);
 
       function movePlayer() {
-        const speed = 0.1;
+        const speed = 0.2;
         if (controls.isLocked) {
           if (keys["KeyW"]) controls.moveForward(speed);
           if (keys["KeyS"]) controls.moveForward(-speed);
@@ -106,11 +106,11 @@
         const pos = target.object.position.clone();
 
         if (event.button === 0) {
-          // 左クリック → 壊す
+          // 壊す
           scene.remove(target.object);
           delete blocks[`${pos.x},${pos.y},${pos.z}`];
         } else if (event.button === 2) {
-          // 右クリック → 設置
+          // 設置
           const normal = target.face.normal;
           const newPos = pos.clone().add(normal);
           const key = `${newPos.x},${newPos.y},${newPos.z}`;
