@@ -21,7 +21,7 @@
 <body>
   <div id="info">クリックで視点ロック<br>左クリック: 壊す / 右クリック: 置く</div>
 
-  <!-- Three.js本体CDN -->
+  <!-- Three.js本体 -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
   <!-- PointerLockControls -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/controls/PointerLockControls.js"></script>
@@ -38,7 +38,7 @@
 
     function init() {
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x87ceeb);
+      scene.background = new THREE.Color(0x87ceeb); // 空色
 
       camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 
@@ -50,9 +50,9 @@
       document.body.addEventListener('click', () => { controls.lock(); });
       scene.add(controls.getObject());
 
-      // 初期位置と向き
-      controls.getObject().position.set(8, 5, 20); // プレイヤー位置
-      camera.lookAt(8, 0, 8); // 地面の中央を見る
+      // 初期位置と視線
+      controls.getObject().position.set(8, 5, 20);
+      camera.rotation.x = -0.3; // 👈 少し下を見る
 
       raycaster = new THREE.Raycaster();
 
@@ -63,13 +63,13 @@
       const ambient = new THREE.AmbientLight(0xffffff, 0.4);
       scene.add(ambient);
 
-      // 地面を生成 (16x16)
+      // 地面 16x16
       const geometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
       const grassMat = new THREE.MeshStandardMaterial({color:0x228B22});
       for(let x=0;x<16;x++){
         for(let z=0;z<16;z++){
           const cube = new THREE.Mesh(geometry, grassMat);
-          cube.position.set(x, 0, z); // y=0 に地面
+          cube.position.set(x, 0, z); 
           scene.add(cube);
           blocks[`${x},0,${z}`] = cube;
         }
