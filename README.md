@@ -2,77 +2,62 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Canvasマイクラ風</title>
+<title>3Dマイクラ風サンプル</title>
 <style>
-  body { margin:0; background:#87ceeb; }
-  canvas { display:block; margin:auto; background:#87ceeb; }
-  #info { position:absolute; top:10px; left:10px; font-family:sans-serif; color:white; }
+  body { margin:0; overflow:hidden; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-<div id="info">左クリック: 壊す / 右クリック: 置く</div>
-<canvas id="game" width="640" height="480"></canvas>
-
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+// シーン
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
 
-const rows = 15;
-const cols = 20;
-const size = 32; // 1ブロックの大きさ
-let blocks = [];
+// カメラ
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(10,15,20);
 
-// 初期化（地面を生成）
-for(let y=0;y<rows;y++){
-  blocks[y] = [];
-  for(let x=0;x<cols;x++){
-    if(y > rows/2) blocks[y][x] = 1; // 草ブロック
-    else blocks[y][x] = 0; // 空
+// レンダラー
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// 光
+const light = new THREE.DirectionalLight(0xffffff,1);
+light.position.set(10,20,10);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0xffffff,0.5));
+
+// 16x16の地面
+const geo = new THREE.BoxGeometry(1,1,1);
+const mat = new THREE.MeshStandardMaterial({color:0x228B22});
+for(let x=0;x<16;x++){
+  for(let z=0;z<16;z++){
+    const cube = new THREE.Mesh(geo,mat);
+    cube.position.set(x,0,z);
+    scene.add(cube);
   }
 }
 
-// 描画関数
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  for(let y=0;y<rows;y++){
-    for(let x=0;x<cols;x++){
-      if(blocks[y][x]===1){
-        ctx.fillStyle="#228B22"; // 緑
-        ctx.fillRect(x*size,y*size,size,size);
-        ctx.strokeStyle="black";
-        ctx.strokeRect(x*size,y*size,size,size);
-      }
-      if(blocks[y][x]===2){
-        ctx.fillStyle="#8B4513"; // 茶色
-        ctx.fillRect(x*size,y*size,size,size);
-        ctx.strokeStyle="black";
-        ctx.strokeRect(x*size,y*size,size,size);
-      }
-    }
-  }
-}
-draw();
+// カメラ操作（マウスで回せる）
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-// クリック操作
-canvas.addEventListener("mousedown",e=>{
-  const rect = canvas.getBoundingClientRect();
-  const x = Math.floor((e.clientX-rect.left)/size);
-  const y = Math.floor((e.clientY-rect.top)/size);
-
-  if(x<0||x>=cols||y<0||y>=rows) return;
-
-  if(e.button===0){
-    // 左クリック: 壊す
-    blocks[y][x] = 0;
-  } else if(e.button===2){
-    // 右クリック: 置く
-    if(blocks[y][x]===0) blocks[y][x] = 2;
-  }
-  draw();
+// リサイズ対応
+window.addEventListener("resize",()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// 右クリックメニュー禁止
-canvas.addEventListener("contextmenu", e=>e.preventDefault());
+// 描画ループ
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene,camera);
+}
+animate();
 </script>
 </body>
 </html>
