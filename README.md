@@ -2,114 +2,38 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>超シンプル版</title>
+  <title>Three.js テスト</title>
   <style>
     body { margin: 0; overflow: hidden; }
-    #info {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      color: white;
-      font-family: sans-serif;
-      z-index: 1;
-    }
+    canvas { display: block; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/controls/PointerLockControls.js"></script>
 </head>
 <body>
-<div id="info">クリックで視点ロック<br>左クリック: 壊す / 右クリック: 置く</div>
 <script>
-let scene, camera, renderer, raycaster;
-let blocks = {};
-let blockSize = 1;
-let pointer = new THREE.Vector2();
-let controls;
+let scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb); // 青空
 
-init();
-animate();
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.z = 5;
 
-function init() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x87ceeb);
+let renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.set(3, 3, 5);
-
-  renderer = new THREE.WebGLRenderer({antialias:true});
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-
-  controls = new THREE.PointerLockControls(camera, renderer.domElement);
-  document.body.addEventListener('click', () => { controls.lock(); });
-  scene.add(controls.getObject());
-
-  raycaster = new THREE.Raycaster();
-
-  // 光
-  const light = new THREE.DirectionalLight(0xffffff, 1);
-  light.position.set(10,10,10);
-  scene.add(light);
-
-  const ambient = new THREE.AmbientLight(0xffffff, 0.4);
-  scene.add(ambient);
-
-  // ✨ テスト用：ブロック1個だけ
-  let cubeGeo = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
-  let cubeMat = new THREE.MeshStandardMaterial({color:0x228B22});
-  let cube = new THREE.Mesh(cubeGeo, cubeMat);
-  cube.position.set(0,0,0);
-  scene.add(cube);
-  blocks[`0,0,0`] = cube;
-
-  window.addEventListener('resize', onWindowResize);
-  document.addEventListener('mousedown', onMouseDown);
-  document.addEventListener('contextmenu', e => e.preventDefault()); // 右クリック無効化
-}
-
-function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-function onMouseDown(event) {
-  if (!controls.isLocked) return;
-
-  pointer.x = 0;
-  pointer.y = 0;
-  raycaster.setFromCamera(pointer, camera);
-  const intersects = raycaster.intersectObjects(Object.values(blocks));
-
-  if (intersects.length > 0) {
-    const target = intersects[0];
-    const pos = target.object.position.clone();
-
-    if (event.button === 0) {
-      // 左クリック → 壊す
-      scene.remove(target.object);
-      delete blocks[`${pos.x},${pos.y},${pos.z}`];
-    } else if (event.button === 2) {
-      // 右クリック → 置く
-      const normal = target.face.normal;
-      const newPos = pos.clone().add(normal);
-      const key = `${newPos.x},${newPos.y},${newPos.z}`;
-      if (!blocks[key]) {
-        let cubeGeo = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
-        let cubeMat = new THREE.MeshStandardMaterial({color:0x8B4513});
-        let newCube = new THREE.Mesh(cubeGeo, cubeMat);
-        newCube.position.copy(newPos);
-        scene.add(newCube);
-        blocks[key] = newCube;
-      }
-    }
-  }
-}
+// 箱（赤）
+let geometry = new THREE.BoxGeometry();
+let material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+let cube = new THREE.Mesh(geometry, material);
+scene.add(cube);
 
 function animate() {
   requestAnimationFrame(animate);
+  cube.rotation.x += 0.01;
+  cube.rotation.y += 0.01;
   renderer.render(scene, camera);
 }
+animate();
 </script>
 </body>
 </html>
