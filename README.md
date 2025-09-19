@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Minecraft風テスト</title>
+  <title>超シンプル版</title>
   <style>
     body { margin: 0; overflow: hidden; }
     #info {
@@ -34,7 +34,7 @@ function init() {
   scene.background = new THREE.Color(0x87ceeb);
 
   camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.set(8, 10, 8);
+  camera.position.set(3, 3, 5);
 
   renderer = new THREE.WebGLRenderer({antialias:true});
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -46,24 +46,21 @@ function init() {
 
   raycaster = new THREE.Raycaster();
 
+  // 光
   const light = new THREE.DirectionalLight(0xffffff, 1);
-  light.position.set(10,20,10);
+  light.position.set(10,10,10);
   scene.add(light);
 
   const ambient = new THREE.AmbientLight(0xffffff, 0.4);
   scene.add(ambient);
 
-  // 地面生成
-  const geometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
-  const material = new THREE.MeshStandardMaterial({color:0x228B22});
-  for (let x=0; x<16; x++) {
-    for (let z=0; z<16; z++) {
-      let cube = new THREE.Mesh(geometry, material);
-      cube.position.set(x, 0, z);
-      scene.add(cube);
-      blocks[`${x},0,${z}`] = cube;
-    }
-  }
+  // ✨ テスト用：ブロック1個だけ
+  let cubeGeo = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
+  let cubeMat = new THREE.MeshStandardMaterial({color:0x228B22});
+  let cube = new THREE.Mesh(cubeGeo, cubeMat);
+  cube.position.set(0,0,0);
+  scene.add(cube);
+  blocks[`0,0,0`] = cube;
 
   window.addEventListener('resize', onWindowResize);
   document.addEventListener('mousedown', onMouseDown);
@@ -98,12 +95,12 @@ function onMouseDown(event) {
       const newPos = pos.clone().add(normal);
       const key = `${newPos.x},${newPos.y},${newPos.z}`;
       if (!blocks[key]) {
-        let geometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
-        let material = new THREE.MeshStandardMaterial({color:0x8B4513});
-        let cube = new THREE.Mesh(geometry, material);
-        cube.position.copy(newPos);
-        scene.add(cube);
-        blocks[key] = cube;
+        let cubeGeo = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
+        let cubeMat = new THREE.MeshStandardMaterial({color:0x8B4513});
+        let newCube = new THREE.Mesh(cubeGeo, cubeMat);
+        newCube.position.copy(newPos);
+        scene.add(newCube);
+        blocks[key] = newCube;
       }
     }
   }
