@@ -1,39 +1,97 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>Three.js テスト</title>
-  <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+<meta charset="UTF-8">
+<title>簡易マイクラ風</title>
+<style>
+  body { margin: 0; overflow: hidden; }
+  #info { position:absolute; top:10px; left:10px; color:white; font-family:sans-serif; z-index:1; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.0/examples/js/controls/PointerLockControls.js"></script>
 </head>
 <body>
+<div id="info">クリックで視点ロック<br>左クリック: 壊す / 右クリック: 置く</div>
 <script>
-let scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb); // 青空
+let scene, camera, renderer, raycaster;
+let blocks = {};
+let blockSize = 1;
+let pointer = new THREE.Vector2();
+let controls;
 
-let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.z = 5;
-
-let renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-// 箱（赤）
-let geometry = new THREE.BoxGeometry();
-let material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-let cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
-
-function animate() {
-  requestAnimationFrame(animate);
-  cube.rotation.x += 0.01;
-  cube.rotation.y += 0.01;
-  renderer.render(scene, camera);
-}
+init();
 animate();
+
+function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87ceeb);
+
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.set(3, 3, 5);
+
+  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  controls = new THREE.PointerLockControls(camera, renderer.domElement);
+  document.body.addEventListener('click',()=>controls.lock());
+  scene.add(controls.getObject());
+
+  raycaster = new THREE.Raycaster();
+
+  // 光
+  const light = new THREE.DirectionalLight(0xffffff,1);
+  light.position.set(10,10,10);
+  scene.add(light);
+  scene.add(new THREE.AmbientLight(0xffffff,0.4));
+
+  // ブロック1個
+  let geo = new THREE.BoxGeometry(blockSize,blockSize,blockSize);
+  let mat = new THREE.MeshStandardMaterial({color:0x228B22});
+  let cube = new THREE.Mesh(geo, mat);
+  cube.position.set(0,0,0);
+  scene.add(cube);
+  blocks[`0,0,0`] = cube;
+
+  window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);});
+  document.addEventListener('mousedown',onMouseDown);
+  document.addEventListener('contextmenu', e=>e.preventDefault());
+}
+
+function onMouseDown(event){
+  if(!controls.isLocked) return;
+  pointer.x=0; pointer.y=0;
+  raycaster.setFromCamera(pointer,camera);
+  const intersects=raycaster.intersectObjects(Object.values(blocks));
+  if(intersects.length>0){
+    const target=intersects[0];
+    const pos=target.object.position.clone();
+
+    if(event.button===0){
+      // 左クリックで壊す
+      scene.remove(target.object);
+      delete blocks[`${pos.x},${pos.y},${pos.z}`];
+    } else if(event.button===2){
+      // 右クリックで置く
+      const normal=target.face.normal;
+      const newPos=pos.clone().add(normal);
+      const key=`${newPos.x},${newPos.y},${newPos.z}`;
+      if(!blocks[key]){
+        let geo=new THREE.BoxGeometry(blockSize,blockSize,blockSize);
+        let mat=new THREE.MeshStandardMaterial({color:0x8B4513});
+        let cube=new THREE.Mesh(geo,mat);
+        cube.position.copy(newPos);
+        scene.add(cube);
+        blocks[key]=cube;
+      }
+    }
+  }
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  renderer.render(scene,camera);
+}
 </script>
 </body>
 </html>
