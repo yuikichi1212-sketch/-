@@ -1,143 +1,266 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>Minecraft風ゲーム</title>
+  <meta charset="UTF-8">
+  <title>ゆいきちナビ 超完全版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css">
   <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.9);
+      padding: 8px;
+      border-radius: 8px;
+      z-index: 9999;
+    }
     #info {
       position: absolute;
-      top: 10px; left: 10px;
-      color: white; font-family: sans-serif;
-      background: rgba(0,0,0,0.5);
-      padding: 5px 10px; border-radius: 5px;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 6px;
+      border-radius: 6px;
+      font-size: 14px;
+      z-index: 9999;
     }
   </style>
 </head>
 <body>
-  <div id="info">
-    クリックで視点ロック<br>
-    WASD: 移動 / マウス: 視点<br>
-    左クリック: 壊す / 右クリック: 置く
+  <div id="controls">
+    <input type="text" id="destination" placeholder="目的地を入力">
+    <button id="searchBtn">ナビ開始</button>
+    <button id="stopBtn">ナビ停止</button>
   </div>
+  <div id="map"></div>
+  <div id="info">準備中...</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/PointerLockControls.js"></script>
   <script>
-    let scene, camera, renderer, controls, raycaster;
-    let blocks = {};
-    const blockSize = 1;
+    let map, routingControl, userMarker;
+    let compassHeading = 0;
+    let navigating = false;
+    let turnMarkers = [];
+    let pointerMarker = null;
 
-    init();
-    animate();
+    // 地図の初期化
+    map = L.map("map", {zoomControl: true}).setView([35.1709, 136.8815], 16);
 
-    function init() {
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x87ceeb);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
 
-      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.set(8, 5, 8);
+    // 現在地を取得
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const latlng = [pos.coords.latitude, pos.coords.longitude];
+      map.setView(latlng, 16);
 
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      document.body.appendChild(renderer.domElement);
+      userMarker = L.marker(latlng).addTo(map).bindPopup("現在地").openPopup();
+    }, (err) => {
+      console.error("現在地取得失敗:", err);
+    }, {enableHighAccuracy: true});
+        // ==========================================================
+    // Part 2: ルート検索・ナビ機能
+    // ==========================================================
 
-      // 光源
-      const light = new THREE.DirectionalLight(0xffffff, 1);
-      light.position.set(10, 20, 10);
-      scene.add(light);
-      scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    const searchBtn = document.getElementById("searchBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const infoBox = document.getElementById("info");
 
-      // コントロール（FPS視点）
-      controls = new THREE.PointerLockControls(camera, document.body);
-      document.body.addEventListener("click", () => controls.lock());
-      scene.add(controls.getObject());
-
-      raycaster = new THREE.Raycaster();
-
-      // 地面
-      const groundGeo = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
-      const groundMat = new THREE.MeshStandardMaterial({ color: 0x228B22 });
-      for (let x = 0; x < 16; x++) {
-        for (let z = 0; z < 16; z++) {
-          const cube = new THREE.Mesh(groundGeo, groundMat);
-          cube.position.set(x, 0, z);
-          scene.add(cube);
-          blocks[`${x},0,${z}`] = cube;
-        }
-      }
-
-      // イベント
-      window.addEventListener("resize", onWindowResize);
-      document.addEventListener("mousedown", onMouseDown);
-      document.addEventListener("contextmenu", e => e.preventDefault());
-
-      // 移動制御
-      document.addEventListener("keydown", onKeyDown);
-      document.addEventListener("keyup", onKeyUp);
-    }
-
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    // --- ブロック操作 ---
-    function onMouseDown(event) {
-      if (!controls.isLocked) return;
-      raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-      const intersects = raycaster.intersectObjects(Object.values(blocks));
-      if (intersects.length > 0) {
-        const target = intersects[0];
-        const pos = target.object.position.clone();
-
-        if (event.button === 0) {
-          // 左クリック: 壊す
-          scene.remove(target.object);
-          delete blocks[`${pos.x},${pos.y},${pos.z}`];
-        } else if (event.button === 2) {
-          // 右クリック: 置く
-          const normal = target.face.normal;
-          const newPos = pos.clone().add(normal);
-          const key = `${newPos.x},${newPos.y},${newPos.z}`;
-          if (!blocks[key]) {
-            const mat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-            const geo = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
-            const cube = new THREE.Mesh(geo, mat);
-            cube.position.copy(newPos);
-            scene.add(cube);
-            blocks[key] = cube;
-          }
-        }
+    // 音声読み上げ（簡易）
+    function speak(text) {
+      if ('speechSynthesis' in window) {
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = "ja-JP";
+        speechSynthesis.speak(utter);
       }
     }
 
-    // --- 移動制御 ---
-    const keys = {};
-    function onKeyDown(e) { keys[e.code] = true; }
-    function onKeyUp(e) { keys[e.code] = false; }
+    // ナビ開始
+    searchBtn.addEventListener("click", async () => {
+      if (!userMarker) {
+        alert("現在地が取得できませんでした。");
+        return;
+      }
+      const destination = document.getElementById("destination").value;
+      if (!destination) {
+        alert("目的地を入力してください。");
+        return;
+      }
 
-    function movePlayer() {
-      if (!controls.isLocked) return;
-      const speed = 0.1;
-      const dir = new THREE.Vector3();
-      if (keys["KeyW"]) dir.z -= 1;
-      if (keys["KeyS"]) dir.z += 1;
-      if (keys["KeyA"]) dir.x -= 1;
-      if (keys["KeyD"]) dir.x += 1;
-      dir.normalize();
-      controls.moveRight(dir.x * speed);
-      controls.moveForward(dir.z * speed);
+      // 目的地を座標に変換（Nominatim API）
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destination)}`);
+      const data = await res.json();
+      if (data.length === 0) {
+        alert("目的地が見つかりません。");
+        return;
+      }
+      const destLat = parseFloat(data[0].lat);
+      const destLon = parseFloat(data[0].lon);
+
+      // ルート表示
+      if (routingControl) {
+        map.removeControl(routingControl);
+      }
+      routingControl = L.Routing.control({
+        waypoints: [
+          userMarker.getLatLng(),
+          L.latLng(destLat, destLon)
+        ],
+        lineOptions: {
+          styles: [{color: "blue", weight: 6}]
+        },
+        createMarker: () => null,
+        addWaypoints: false,
+        routeWhileDragging: false
+      }).addTo(map);
+
+      navigating = true;
+      infoBox.innerText = "ナビ開始: " + destination;
+      speak("目的地までのルートを開始します");
+    });
+
+    // ナビ停止
+    stopBtn.addEventListener("click", () => {
+      if (routingControl) {
+        map.removeControl(routingControl);
+        routingControl = null;
+      }
+      navigating = false;
+      infoBox.innerText = "ナビ停止中";
+      speak("ナビを停止しました");
+    });
+    // ==========================================================
+    // Part 3: 曲がり角マーカーと音声案内
+    // ==========================================================
+
+    function clearTurnMarkers() {
+      turnMarkers.forEach(m => map.removeLayer(m));
+      turnMarkers = [];
     }
 
-    // --- アニメーション ---
-    function animate() {
-      requestAnimationFrame(animate);
-      movePlayer();
-      renderer.render(scene, camera);
+    // ルート完了時にステップ情報を取得
+    map.on("routeselected", (e) => {
+      clearTurnMarkers();
+
+      const route = e.route;
+      if (!route || !route.instructions) return;
+
+      route.instructions.forEach((inst, i) => {
+        const latlng = inst.latLng;
+        const text = inst.text;
+
+        // マーカー作成
+        const marker = L.marker(latlng, {
+          title: text
+        }).addTo(map);
+
+        marker.bindPopup(text);
+        turnMarkers.push(marker);
+
+        // 音声案内
+        setTimeout(() => {
+          speak(text);
+          infoBox.innerText = text;
+        }, i * 4000); // 順番に読み上げる（仮）
+      });
+    });
+
+    // ナビ停止時にマーカー削除
+    stopBtn.addEventListener("click", () => {
+      clearTurnMarkers();
+    });
+    // ==========================================================
+    // Part 4: コンパス・地図回転・ポインター
+    // ==========================================================
+
+    // ポインターアイコン
+    const pointerIcon = L.divIcon({
+      className: "pointer-icon",
+      html: "▲",
+      iconSize: [30, 30]
+    });
+
+    // ポインターを現在地に設置
+    function updatePointer(lat, lon, heading) {
+      if (!pointerMarker) {
+        pointerMarker = L.marker([lat, lon], {icon: pointerIcon}).addTo(map);
+      } else {
+        pointerMarker.setLatLng([lat, lon]);
+      }
+
+      // 方角を適用
+      if (pointerMarker._icon) {
+        pointerMarker._icon.style.transform =
+          `rotate(${heading}deg) translate(-50%, -50%)`;
+      }
     }
+
+    // 現在地を常に真ん中に
+    function keepUserCentered(lat, lon) {
+      if (navigating) {
+        map.setView([lat, lon], map.getZoom(), {animate: false});
+      }
+    }
+
+    // コンパスイベント（デバイスの向き）
+    window.addEventListener("deviceorientationabsolute", (event) => {
+      if (event.alpha !== null) {
+        compassHeading = 360 - event.alpha; // 方角
+      }
+    }, true);
+
+    // 位置情報の監視（更新時に地図回転＆ポインター更新）
+    navigator.geolocation.watchPosition((pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+
+      // 現在地マーカー更新
+      if (!userMarker) {
+        userMarker = L.marker([lat, lon]).addTo(map).bindPopup("現在地");
+      } else {
+        userMarker.setLatLng([lat, lon]);
+      }
+
+      // ポインター更新
+      updatePointer(lat, lon, compassHeading);
+
+      // 地図回転（ナビ中のみ）
+      if (navigating) {
+        map.setBearing?.(compassHeading); // Leafletに方位回転プラグインを使う場合
+      }
+
+      keepUserCentered(lat, lon);
+    }, (err) => {
+      console.error("現在地更新エラー:", err);
+    }, {enableHighAccuracy: true});
+
+    // スタイル調整
+    const style = document.createElement("style");
+    style.innerHTML = `
+      .pointer-icon {
+        font-size: 28px;
+        color: red;
+        text-shadow: 0 0 3px white;
+      }
+    `;
+    document.head.appendChild(style);
   </script>
 </body>
 </html>
