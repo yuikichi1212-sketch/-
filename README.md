@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ゆいきち サムネメーカー（フル版）</title>
+  <title>ゆいきちコーダー）</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -55,7 +55,7 @@
 </head>
 <body>
   <header>
-    <h1>🎨 ゆいきち サムネメーカー — フル機能版</h1>
+    <h1>ゆいきちコーダー</h1>
     <p>透明感のあるUI・回転/トリミング/縁取り/シャドウ/Undo・Redo など搭載</p>
   </header>
 
