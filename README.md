@@ -1,224 +1,341 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ゆいきち ドキュメント（Google Docs風）</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    :root{--bg:#f5f7fb;--panel:#ffffff;--muted:#6b7280;--accent:#0b3b66}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:'Noto Sans JP',system-ui, -apple-system, 'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:var(--bg);color:var(--accent);}
-    header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:linear-gradient(180deg,#fff,#f7fbff);box-shadow:0 3px 10px rgba(10,20,40,0.05)}
-    .brand{display:flex;align-items:center;gap:12px}
-    .brand h1{margin:0;font-size:16px}
-    .toolbar{display:flex;gap:8px;align-items:center}
-    .toolbar select,.toolbar button,.toolbar input[type=color]{padding:8px;border-radius:6px;border:1px solid rgba(0,0,0,0.06);background:white}
-    .main{display:flex;gap:16px;padding:18px}
-    .sidebar{width:220px}
-    .sidebar .panel{background:var(--panel);padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(10,20,40,0.04)}
-    .editor-wrap{flex:1;display:flex;flex-direction:column;align-items:center}
-    .doc{width:842px;min-height:1188px;background:white;padding:48px;border-radius:6px;box-shadow:0 6px 20px rgba(10,20,40,0.06);overflow:auto}
-    .doc[contenteditable]{outline:none}
-    .status{display:flex;gap:10px;align-items:center;margin-top:8px;color:var(--muted);font-size:13px}
-    .btn{cursor:pointer}
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ゆいコードー — 動画編集</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0f1720;--panel:#0b1220;--muted:#9aa6b2;--accent:#18a0fb;--danger:#ff6b6b}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:'Noto Sans JP',system-ui,-apple-system,'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;background:var(--bg);color:#e6eef6}
+  header{height:64px;display:flex;align-items:center;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.04);gap:12px}
+  header h1{font-size:18px;margin:0;font-weight:600}
+  .top-controls{margin-left:auto;display:flex;gap:8px;align-items:center}
+  button{background:transparent;color:inherit;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:6px;cursor:pointer}
+  .main{display:flex;height:calc(100vh - 64px)}
+  .left{width:340px;padding:16px;border-right:1px solid rgba(255,255,255,0.03);overflow:auto}
+  .center{flex:1;display:flex;flex-direction:column;gap:12px;padding:16px;overflow:hidden}
+  .right{width:360px;padding:16px;border-left:1px solid rgba(255,255,255,0.03);overflow:auto}
 
-    /* small helpers */
-    .row{display:flex;gap:8px;align-items:center}
-    input[type=number]{width:64px}
-    .modal{position:fixed;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35)}
-    .modal .card{background:white;padding:16px;border-radius:8px;min-width:320px}
+  /* preview */
+  .preview{background:#061021;border-radius:8px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px}
+  canvas#previewCanvas{background:black;border-radius:6px;max-width:100%;box-shadow:0 6px 20px rgba(0,0,0,0.6)}
+  .transport{display:flex;gap:8px;align-items:center}
+  .timeline{background:#071425;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
+  .timeline-track{height:64px;background:rgba(255,255,255,0.02);border-radius:6px;position:relative;overflow:hidden}
+  .clip{position:absolute;left:8px;top:8px;height:48px;background:linear-gradient(180deg,#12313f,#0d2730);border:1px solid rgba(255,255,255,0.05);border-radius:6px;padding:6px;color:#e6eef6;cursor:grab;display:flex;align-items:center;gap:8px}
+  .clip .label{font-size:13px}
+  .ruler{height:24px;color:var(--muted);font-size:12px;padding:6px}
 
-    @media(max-width:1000px){.main{flex-direction:column}.sidebar{width:100%}}
-  </style>
+  input[type=range]{width:100%}
+  label{font-size:13px;color:var(--muted)}
+  .filelist{display:flex;flex-direction:column;gap:6px}
+  .file-entry{display:flex;gap:8px;align-items:center;border:1px solid rgba(255,255,255,0.03);padding:8px;border-radius:6px}
+  .ghost{opacity:0.5}
+  .small{font-size:13px;color:var(--muted)}
+  .danger{background:var(--danger);color:#111}
+  .ok{background:var(--accent);color:#041226}
+  textarea{width:100%;min-height:80px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit;padding:8px;border-radius:6px}
+  .prop{display:flex;flex-direction:column;gap:8px}
+  .prop .row{display:flex;gap:8px;align-items:center}
+  footer{position:fixed;left:16px;bottom:16px;color:var(--muted);font-size:13px}
+
+  /* responsive small */
+  @media(max-width:1000px){ .left{display:none} .right{display:none} }
+</style>
 </head>
 <body>
-  <header>
-    <div class="brand"><h1>ゆいきち ドキュメント</h1><div style="color:var(--muted);font-size:13px">Word/Google Docs ライク（オフラインで動く）</div></div>
-
-    <div class="toolbar">
-      <select id="fontName"><option value="Noto Sans JP">Noto Sans JP</option><option value="Roboto Slab">Roboto Slab</option><option value="serif">Serif</option><option value="monospace">Monospace</option></select>
-      <select id="fontSize"><option>10</option><option>11</option><option selected>12</option><option>14</option><option>18</option><option>24</option><option>36</option><option>48</option></select>
-      <button id="boldBtn"><b>B</b></button>
-      <button id="italicBtn"><i>I</i></button>
-      <button id="underlineBtn">U</button>
-      <button id="strikeBtn">S</button>
-      <button id="headingBtn">H1</button>
-      <button id="quoteBtn">❝</button>
-      <button id="olBtn">1.</button>
-      <button id="ulBtn">•</button>
-      <button id="alignLeft">≡</button>
-      <button id="alignCenter">⋯</button>
-      <button id="alignRight">≣</button>
-      <input id="colorBtn" type="color" value="#000000" title="文字色">
-      <input id="highlightBtn" type="color" value="#ffff00" title="ハイライト">
-      <button id="insertImage">画像挿入</button>
-      <button id="insertTable">表</button>
-      <button id="findBtn">検索</button>
-      <button id="undoBtn">↶</button>
-      <button id="redoBtn">↷</button>
-      <button id="saveBtn" class="btn">保存</button>
-      <button id="downloadHtml" class="btn">HTML保存</button>
-      <button id="downloadDoc" class="btn">Word保存(.doc)</button>
-      <button id="printBtn" class="btn">印刷</button>
-    </div>
-  </header>
-
-  <div class="main">
-    <aside class="sidebar">
-      <div class="panel">
-        <h3 style="margin-top:0">スタイル</h3>
-        <div class="row"><label>行間</label><input id="lineHeight" type="number" value="1.6" step="0.1"></div>
-        <div style="height:10px"></div>
-        <h4>テンプレート</h4>
-        <div class="row"><button id="tplBlank" class="btn">白紙</button><button id="tplReport" class="btn">報告書</button></div>
-
-        <div style="height:10px"></div>
-        <h4>目次 / 協力</h4>
-        <div class="row"><button id="generateToc" class="btn">目次生成</button><button id="wordCount" class="btn">文字数</button></div>
-
-        <div style="height:10px"></div>
-        <h4>ファイル</h4>
-        <div class="row"><button id="loadFile" class="btn">読み込み</button><button id="clearAll" class="btn">全消去</button></div>
-      </div>
-    </aside>
-
-    <section class="editor-wrap">
-      <div id="doc" class="doc" contenteditable="true" spellcheck="true">
-        <h1>タイトル</h1>
-        <p>ここに本文を書きます。Googleドキュメントのように自由に編集できます。</p>
-      </div>
-      <div class="status"><div id="statusSave">自動保存: オン</div><div id="statusCount">単語: 0</div><div id="statusSel">選択: 0</div></div>
-    </section>
+<header>
+  <h1>ゆいコードー — 動画エディタ</h1>
+  <div class="top-controls">
+    <button id="newProj">新規</button>
+    <button id="saveProj">保存</button>
+    <button id="loadProj">読み込み</button>
+    <button id="exportBtn">書き出し</button>
   </div>
+</header>
 
-  <!-- hidden inputs -->
-  <input type="file" id="imageLoader" accept="image/*" style="display:none">
+<div class="main">
+  <aside class="left">
+    <div style="margin-bottom:12px">
+      <label class="small">メディアをアップロード（動画/音声）</label>
+      <input id="fileInput" type="file" accept="video/*,audio/*" multiple>
+    </div>
+    <div style="margin-bottom:12px">
+      <label class="small">タイムラインに追加</label>
+      <div class="filelist" id="fileList"></div>
+    </div>
 
-  <!-- find modal -->
-  <div id="findModal" class="modal" style="display:none"><div class="card"><h4>検索と置換</h4><div class="row"><input id="findInput" placeholder="検索語"></div><div class="row" style="margin-top:8px"><input id="replaceInput" placeholder="置換語"></div><div style="margin-top:8px" class="row"><button id="doFind" class="btn">検索</button><button id="doReplace" class="btn">置換</button><button id="closeFind" class="btn">閉じる</button></div></div></div>
+    <div class="panel">
+      <h3 style="margin:0 0 8px 0">クリップ操作</h3>
+      <div class="prop">
+        <div class="row"><label>開始（秒）</label><input id="clipStart" type="number" step="0.1" value="0"></div>
+        <div class="row"><label>終了（秒）</label><input id="clipEnd" type="number" step="0.1" value="1"></div>
+        <div class="row"><button id="applyTrim">トリム適用</button><button id="splitClip">分割</button></div>
+      </div>
+    </div>
 
-  <script>
-    // Helper: exec command wrapper
-    function exec(cmd, val=null){ document.execCommand(cmd, false, val); doc.focus(); }
+    <div class="panel">
+      <h3 style="margin:0 0 8px 0">オーバーレイ</h3>
+      <div class="prop">
+        <label>テキスト</label>
+        <input id="overlayText" placeholder="テロップを入力">
+        <div class="row"><label>開始（秒）</label><input id="overlayStart" type="number" step="0.1" value="0"></div>
+        <div class="row"><label>終了（秒）</label><input id="overlayEnd" type="number" step="0.1" value="2"></div>
+        <div class="row"><button id="addOverlay">追加</button></div>
+      </div>
+    </div>
 
-    const doc = document.getElementById('doc');
-    const fontName = document.getElementById('fontName');
-    const fontSize = document.getElementById('fontSize');
-    const boldBtn = document.getElementById('boldBtn');
-    const italicBtn = document.getElementById('italicBtn');
-    const underlineBtn = document.getElementById('underlineBtn');
-    const strikeBtn = document.getElementById('strikeBtn');
-    const headingBtn = document.getElementById('headingBtn');
-    const quoteBtn = document.getElementById('quoteBtn');
-    const olBtn = document.getElementById('olBtn');
-    const ulBtn = document.getElementById('ulBtn');
-    const alignLeft = document.getElementById('alignLeft');
-    const alignCenter = document.getElementById('alignCenter');
-    const alignRight = document.getElementById('alignRight');
-    const colorBtn = document.getElementById('colorBtn');
-    const highlightBtn = document.getElementById('highlightBtn');
-    const insertImage = document.getElementById('insertImage');
-    const insertTable = document.getElementById('insertTable');
-    const findBtn = document.getElementById('findBtn');
-    const undoBtn = document.getElementById('undoBtn');
-    const redoBtn = document.getElementById('redoBtn');
-    const saveBtn = document.getElementById('saveBtn');
-    const downloadHtml = document.getElementById('downloadHtml');
-    const downloadDoc = document.getElementById('downloadDoc');
-    const printBtn = document.getElementById('printBtn');
-    const imageLoader = document.getElementById('imageLoader');
+  </aside>
 
-    // basic commands
-    boldBtn.onclick = ()=>exec('bold');
-    italicBtn.onclick = ()=>exec('italic');
-    underlineBtn.onclick = ()=>exec('underline');
-    strikeBtn.onclick = ()=>exec('strikeThrough');
-    headingBtn.onclick = ()=>exec('formatBlock', '<h1>');
-    quoteBtn.onclick = ()=>exec('formatBlock', '<blockquote>');
-    olBtn.onclick = ()=>exec('insertOrderedList');
-    ulBtn.onclick = ()=>exec('insertUnorderedList');
-    alignLeft.onclick = ()=>exec('justifyLeft');
-    alignCenter.onclick = ()=>exec('justifyCenter');
-    alignRight.onclick = ()=>exec('justifyRight');
+  <section class="center">
+    <div class="preview">
+      <canvas id="previewCanvas" width="960" height="540"></canvas>
+      <div class="transport">
+        <button id="playBtn">再生</button>
+        <button id="pauseBtn">一時停止</button>
+        <label class="small">再生率 <input id="playbackRate" type="range" min="0.25" max="2" step="0.25" value="1"></label>
+        <label class="small">ボリューム <input id="masterVolume" type="range" min="0" max="2" step="0.01" value="1"></label>
+        <div class="small" id="timecode">0.00 / 0.00</div>
+      </div>
+    </div>
 
-    fontName.addEventListener('change', ()=>exec('fontName', fontName.value));
-    fontSize.addEventListener('change', ()=>exec('fontSize', fontSize.value));
-    colorBtn.addEventListener('change', ()=>exec('foreColor', colorBtn.value));
-    highlightBtn.addEventListener('change', ()=>exec('backColor', highlightBtn.value));
+    <div class="timeline">
+      <div class="ruler" id="ruler">Timeline (秒)</div>
+      <div class="timeline-track" id="videoTrack"></div>
+      <div class="small">ドラッグで配置、クリックで選択。クリップは連続シーケンスが基本です。</div>
+    </div>
+  </section>
 
-    // images
-    insertImage.addEventListener('click', ()=> imageLoader.click());
-    imageLoader.addEventListener('change', e=>{
-      const f = e.target.files[0]; if(!f) return; const reader = new FileReader(); reader.onload = ()=>{ exec('insertImage', reader.result); }; reader.readAsDataURL(f);
-    });
+  <aside class="right">
+    <div class="panel">
+      <h3 style="margin:0">プロジェクト</h3>
+      <div class="small">合計長さ: <span id="totalDuration">0.00</span> 秒</div>
+      <div style="height:8px"></div>
+      <div class="small">選択クリップ: <span id="selectedClipLabel">なし</span></div>
+      <div style="height:8px"></div>
+      <div class="small">オーバーレイ数: <span id="overlayCount">0</span></div>
+      <div style="height:8px"></div>
+      <div><button id="undoBtn">元に戻す</button><button id="redoBtn">やり直す</button></div>
+    </div>
 
-    // table insert
-    insertTable.addEventListener('click', ()=>{
-      const r = parseInt(prompt('行数を入力', '2')||'2',10); const c = parseInt(prompt('列数を入力', '3')||'3',10); if(r>0 && c>0){ let html='<table border="1" style="border-collapse:collapse;width:100%">'; for(let i=0;i<r;i++){ html+='<tr>'; for(let j=0;j<c;j++){ html+='<td style="padding:6px">&nbsp;</td>'; } html+='</tr>'; } html+='</table><p></p>'; exec('insertHTML', html); } });
+    <div class="panel">
+      <h3 style="margin:0">出力設定</h3>
+      <div class="small">解像度</div>
+      <select id="resolution"><option value="16:9">16:9 (1920x1080)</option><option value="9:16">9:16 (1080x1920)</option><option value="1:1">1:1 (1080x1080)</option></select>
+      <div style="height:8px"></div>
+      <button id="captureThumb">サムネイル生成</button>
+    </div>
+  </aside>
+</div>
+<footer>注意: このアプリはブラウザで動作します。長い動画や高解像度の書き出しは多くのメモリと時間を要します。</footer>
 
-    // find & replace
-    const findModal = document.getElementById('findModal'); const findInput = document.getElementById('findInput'); const replaceInput = document.getElementById('replaceInput'); const doFind = document.getElementById('doFind'); const doReplace = document.getElementById('doReplace'); const closeFind = document.getElementById('closeFind');
-    findBtn.addEventListener('click', ()=>{ findModal.style.display='flex'; findInput.focus(); });
-    closeFind.addEventListener('click', ()=> findModal.style.display='none');
-    doFind.addEventListener('click', ()=>{ const q = findInput.value; if(!q) return alert('検索語を入れて下さい'); const inner = doc.innerHTML; const re = new RegExp(q,'gi'); const newHtml = inner.replace(re, match => `<mark style="background:yellow">${match}</mark>`); doc.innerHTML = newHtml; findModal.style.display='none'; pushAutoSave(); });
-    doReplace.addEventListener('click', ()=>{ const q=findInput.value, r=replaceInput.value; if(!q) return alert('検索語を入れて下さい'); const inner = doc.innerHTML; const re = new RegExp(q,'gi'); doc.innerHTML = inner.replace(re, r); findModal.style.display='none'; pushAutoSave(); });
+<script>
+// ゆいコードー — シンプル動画エディタ（完全クライアント）
+// 実装の方針：タイムラインはシーケンシャル（非重複）クリップを想定。
+// プレビューは canvas に各クリップの video 要素を時刻に合わせて描画。
+// 書き出しは canvas.captureStream + AudioContext を使って MediaRecorder で録る方式。
 
-    // undo/redo via execCommand
-    undoBtn.addEventListener('click', ()=>exec('undo'));
-    redoBtn.addEventListener('click', ()=>exec('redo'));
+const fileInput = document.getElementById('fileInput');
+const fileList = document.getElementById('fileList');
+const videoTrack = document.getElementById('videoTrack');
+const previewCanvas = document.getElementById('previewCanvas');
+const ctx = previewCanvas.getContext('2d');
+const playBtn = document.getElementById('playBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const timecode = document.getElementById('timecode');
+const playbackRate = document.getElementById('playbackRate');
+const masterVolume = document.getElementById('masterVolume');
+const totalDurationEl = document.getElementById('totalDuration');
+const selectedClipLabel = document.getElementById('selectedClipLabel');
+const overlayCount = document.getElementById('overlayCount');
+const exportBtn = document.getElementById('exportBtn');
 
-    // autosave & manual save
-    const AUTO_KEY = 'yui-doc-autosave-v1'; function pushAutoSave(){ localStorage.setItem(AUTO_KEY, doc.innerHTML); document.getElementById('statusSave').textContent = '最後保存: ' + new Date().toLocaleTimeString(); }
-    saveBtn.addEventListener('click', ()=>{ pushAutoSave(); alert('保存しました（ブラウザのローカルストレージ）。ダウンロードするにはHTML保存を使ってください'); });
-    window.addEventListener('beforeunload', ()=> pushAutoSave());
-    // load
-    const last = localStorage.getItem(AUTO_KEY); if(last) doc.innerHTML = last;
+let mediaPool = []; // {id, file, type, url, kind: 'video'|'audio'}
+let timeline = []; // sequence of clips: {id, mediaId, start, end, pos} pos = seconds from start
+let overlays = []; // {id, text, start, end, x,y,font,size,color}
+let selectedClip = null;
+let isPlaying = false; let playStartWall = 0; let playOffset = 0; // offset in timeline seconds
+let rafId = null;
+let history = []; let histIndex = -1;
 
-    // word count
-    const statusCount = document.getElementById('statusCount'); const statusSel = document.getElementById('statusSel');
-    function updateStats(){ const text = doc.innerText || ''; const words = text.trim().split(/\s+/).filter(Boolean).length; statusCount.textContent = '単語: ' + words; const sel = window.getSelection(); statusSel.textContent = '選択: ' + (sel ? sel.toString().length : 0); }
-    doc.addEventListener('input', ()=>{ updateStats(); pushAutoSave(); }); doc.addEventListener('keyup', updateStats); doc.addEventListener('mouseup', updateStats); updateStats();
+// Audio context for mixing
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const masterGain = audioCtx.createGain(); masterGain.gain.value = 1; masterGain.connect(audioCtx.destination);
+masterVolume.addEventListener('input', ()=>{ masterGain.gain.value = parseFloat(masterVolume.value); });
 
-    // download HTML / doc
-    downloadHtml.addEventListener('click', ()=>{ const html = `<!doctype html><html><head><meta charset="utf-8"><title>document</title></head><body>${doc.innerHTML}</body></html>`; const blob = new Blob([html],{type:'text/html'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'document.html'; a.click(); });
-    downloadDoc.addEventListener('click', ()=>{ // simple .doc (Word will open HTML doc)
-      const html = `<!doctype html><html><head><meta charset="utf-8"><title>document</title></head><body>${doc.innerHTML}</body></html>`; const blob = new Blob([html],{type:'application/msword'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'document.doc'; a.click(); });
+function pushHistory(){ const snap = JSON.stringify({mediaPool,timeline,overlays}); if(histIndex < history.length-1) history = history.slice(0,histIndex+1); history.push(snap); if(history.length>200) history.shift(); histIndex = history.length-1; }
+function undo(){ if(histIndex>0){ histIndex--; const obj = JSON.parse(history[histIndex]); mediaPool = obj.mediaPool; timeline = obj.timeline; overlays = obj.overlays; rebuildUI(); }}
+function redo(){ if(histIndex < history.length-1){ histIndex++; const obj = JSON.parse(history[histIndex]); mediaPool = obj.mediaPool; timeline = obj.timeline; overlays = obj.overlays; rebuildUI(); }}
 
-    // print
-    printBtn.addEventListener('click', ()=>{ const w = window.open('', '_blank'); w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>print</title></head><body>' + doc.innerHTML + '</body></html>'); w.document.close(); w.focus(); setTimeout(()=> w.print(), 400); });
+fileInput.addEventListener('change', e=>{
+  const files = Array.from(e.target.files);
+  files.forEach(f=>{
+    const id = Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    const url = URL.createObjectURL(f);
+    const kind = f.type.startsWith('video')? 'video' : (f.type.startsWith('audio')? 'audio':'other');
+    mediaPool.push({id,file:f,url,kind});
+  });
+  rebuildMediaList(); pushHistory();
+});
 
-    // templates
-    document.getElementById('tplBlank').addEventListener('click', ()=>{ if(!confirm('白紙にしますか？')) return; doc.innerHTML = '<h1>タイトル</h1><p>本文をここに入力してください。</p>'; pushAutoSave(); });
-    document.getElementById('tplReport').addEventListener('click', ()=>{ doc.innerHTML = '<h1>報告書タイトル</h1><p>作成日：' + new Date().toLocaleDateString() + '</p><h2>概要</h2><p></p><h2>詳細</h2><p></p><h2>結論</h2><p></p>'; pushAutoSave(); });
+function rebuildMediaList(){ fileList.innerHTML=''; mediaPool.forEach(m=>{
+  const div = document.createElement('div'); div.className='file-entry';
+  const lbl = document.createElement('div'); lbl.textContent = m.file.name; lbl.style.flex='1';
+  const btn = document.createElement('button'); btn.textContent='追加'; btn.addEventListener('click', ()=> addToTimeline(m.id));
+  const del = document.createElement('button'); del.textContent='削除'; del.className='danger'; del.addEventListener('click', ()=>{ mediaPool = mediaPool.filter(x=>x.id!==m.id); rebuildMediaList(); pushHistory(); });
+  div.appendChild(lbl); div.appendChild(btn); div.appendChild(del); fileList.appendChild(div);
+}); }
 
-    // toc generation
-    document.getElementById('generateToc').addEventListener('click', ()=>{
-      const headings = doc.querySelectorAll('h1,h2,h3'); if(headings.length===0){ alert('見出しがありません'); return; }
-      let toc = '<div><h2>目次</h2><ul>'; headings.forEach((h,i)=>{ const id = 'h'+i; h.id = id; toc += `<li><a href="#${id}">${h.innerText}</a></li>`; }); toc += '</ul></div><hr/>'; doc.insertAdjacentHTML('afterbegin', toc); pushAutoSave(); });
+function addToTimeline(mediaId){ const m = mediaPool.find(x=>x.id===mediaId); if(!m) return; // default: place at end
+  const pos = timeline.length? Math.max(...timeline.map(c=>c.pos + (c.end-c.start))) : 0;
+  // need duration: for video, load metadata
+  const temp = document.createElement(m.kind==='video'? 'video':'audio'); temp.preload='metadata'; temp.src = m.url; temp.onloadedmetadata = ()=>{
+    const dur = temp.duration || 1;
+    const clip = {id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), mediaId, start:0, end:Math.min(dur, Math.max(1,dur)), pos};
+    timeline.push(clip); pushHistory(); rebuildUI();
+  };
+}
 
-    // load file (html or txt)
-    document.getElementById('loadFile').addEventListener('click', ()=>{ const f = document.createElement('input'); f.type='file'; f.accept='.html,.htm,.txt'; f.onchange = e=>{ const file = e.target.files[0]; if(!file) return; const r = new FileReader(); r.onload = ()=>{ if(file.name.endsWith('.txt')) doc.textContent = r.result; else doc.innerHTML = r.result; pushAutoSave(); }; r.readAsText(file); }; f.click(); });
+function rebuildUI(){ // timeline track
+  videoTrack.innerHTML=''; let cursor=0; timeline.sort((a,b)=>a.pos-b.pos);
+  timeline.forEach((c,i)=>{
+    const m = mediaPool.find(x=>x.id===c.mediaId);
+    const w = Math.max(30, (c.end-c.start)*40); // px per second approx
+    const div = document.createElement('div'); div.className='clip'; div.style.left = (c.pos*40 + 8) + 'px'; div.style.width = w+'px'; div.dataset.id = c.id;
+    div.innerHTML = `<div class="label">${m.file.name.split('.')[0]} (${(c.end-c.start).toFixed(2)}s)</div>`;
+    div.addEventListener('mousedown', clipMouseDown);
+    div.addEventListener('click', (e)=>{ e.stopPropagation(); selectClip(c.id); });
+    videoTrack.appendChild(div);
+    cursor = Math.max(cursor, c.pos + (c.end-c.start));
+  });
+  totalDurationEl.textContent = cursor.toFixed(2);
+  overlayCount.textContent = overlays.length;
+  updateSelectedLabel();
+}
 
-    // clear all
-    document.getElementById('clearAll').addEventListener('click', ()=>{ if(!confirm('文書を消去しますか？')) return; doc.innerHTML = ''; pushAutoSave(); });
+function selectClip(id){ selectedClip = timeline.find(x=>x.id===id); updateSelectedLabel();
+  if(selectedClip){ document.getElementById('clipStart').value = selectedClip.start; document.getElementById('clipEnd').value = selectedClip.end; }
+}
+function updateSelectedLabel(){ selectedClipLabel.textContent = selectedClip? (mediaPool.find(m=>m.id===selectedClip.mediaId).file.name + ' ['+selectedClip.start.toFixed(2)+'-'+selectedClip.end.toFixed(2)+']') : 'なし'; }
 
-    // keyboard shortcuts for bold etc. also handled by browser but ensure
-    window.addEventListener('keydown', e=>{
-      const meta = e.ctrlKey || e.metaKey;
-      if(meta && e.key.toLowerCase()==='b'){ e.preventDefault(); exec('bold'); }
-      if(meta && e.key.toLowerCase()==='i'){ e.preventDefault(); exec('italic'); }
-      if(meta && e.key.toLowerCase()==='s'){ e.preventDefault(); pushAutoSave(); alert('保存しました（ローカル）'); }
-    });
+// clip drag in timeline
+let dragState = null;
+function clipMouseDown(e){ const el = e.currentTarget; const id = el.dataset.id; dragState = {id, startX: e.clientX, origLeft: parseFloat(el.style.left)}; function onMove(ev){ if(!dragState) return; const dx = ev.clientX - dragState.startX; el.style.left = Math.max(8, dragState.origLeft + dx) + 'px'; }
+  function onUp(ev){ if(!dragState) return; const dx = ev.clientX - dragState.startX; const seconds = Math.round((dragState.origLeft + dx - 8)/40 * 100)/100; const clip = timeline.find(c=>c.id===dragState.id); if(clip){ clip.pos = Math.max(0, seconds); pushHistory(); rebuildUI(); }
+    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); dragState = null; }
+  document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+}
 
-    // line height control
-    document.getElementById('lineHeight').addEventListener('input', e=>{ doc.style.lineHeight = e.target.value; pushAutoSave(); });
+// trim / split
+document.getElementById('applyTrim').addEventListener('click', ()=>{
+  if(!selectedClip) return alert('クリップを選択してください'); const s = parseFloat(document.getElementById('clipStart').value)||0; const e = parseFloat(document.getElementById('clipEnd').value)||0; if(e<=s) return alert('終了は開始より大きくしてください'); selectedClip.start = s; selectedClip.end = e; pushHistory(); rebuildUI();
+});
 
-    // simple export to markdown (bonus)
-    function toMarkdown(){ const text = doc.innerText; const blob = new Blob([text],{type:'text/markdown'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'document.md'; a.click(); }
+document.getElementById('splitClip').addEventListener('click', ()=>{
+  if(!selectedClip) return alert('クリップを選択してください'); const at = parseFloat(document.getElementById('clipStart').value)||0; if(at<=selectedClip.start || at>=selectedClip.end) return alert('分割位置が範囲外です');
+  const idx = timeline.indexOf(selectedClip);
+  const a = Object.assign({}, selectedClip, {end: at});
+  const b = Object.assign({}, selectedClip, {start: at, id:Date.now().toString(36)+Math.random().toString(36).slice(2,6)});
+  timeline.splice(idx,1,a,b); pushHistory(); rebuildUI();
+});
 
-    // on load stats
-    updateStats();
-  </script>
+// overlays
+document.getElementById('addOverlay').addEventListener('click', ()=>{
+  const text = document.getElementById('overlayText').value.trim(); if(!text) return alert('テキストを入力してください'); const s = parseFloat(document.getElementById('overlayStart').value)||0; const e = parseFloat(document.getElementById('overlayEnd').value)||0; if(e<=s) return alert('終了は開始より大きくしてください'); const ov = {id:Date.now().toString(36), text, start:s, end:e, x:50, y:50, font:'24px sans-serif', color:'#ffffff'}; overlays.push(ov); pushHistory(); rebuildUI(); });
+
+// preview engine
+function getTotalDuration(){ if(!timeline.length) return 0; return Math.max(...timeline.map(c=>c.pos + (c.end-c.start))); }
+
+function drawFrame(currentTime){ // clear
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,previewCanvas.width, previewCanvas.height);
+  // find which clip is playing at currentTime
+  for(const clip of timeline){ const clipStart = clip.pos; const clipEnd = clip.pos + (clip.end-clip.start); if(currentTime >= clipStart && currentTime < clipEnd){ const media = mediaPool.find(m=>m.id===clip.mediaId); if(media && media.kind==='video'){
+        if(!media._video){ media._video = document.createElement('video'); media._video.muted = true; media._video.src = media.url; media._video.crossOrigin='anonymous'; }
+        const v = media._video; const tInClip = clip.start + (currentTime - clipStart);
+        if(Math.abs(v.currentTime - tInClip) > 0.2) v.currentTime = tInClip; // seek if desynced
+        if(v.readyState >= 2){ try{ ctx.drawImage(v,0,0,previewCanvas.width, previewCanvas.height); }catch(err){} }
+      }
+  }
+  // overlays
+  ctx.save(); overlays.forEach(ov=>{ if(currentTime>=ov.start && currentTime<=ov.end){ ctx.font = ov.font; ctx.fillStyle = ov.color; ctx.fillText(ov.text, ov.x, ov.y); }}); ctx.restore();
+}
+
+function play(){ if(isPlaying) return; if(audioCtx.state==='suspended') audioCtx.resume(); const total = getTotalDuration(); if(total<=0) return alert('タイムラインが空です'); isPlaying = true; playStartWall = performance.now(); playOffset = playOffset || 0;
+  function loop(){ const elapsed = (performance.now() - playStartWall)/1000 * parseFloat(playbackRate.value) + playOffset; if(elapsed >= total){ stop(); return; } drawFrame(elapsed); timecode.textContent = elapsed.toFixed(2) + ' / ' + total.toFixed(2); rafId = requestAnimationFrame(loop); }
+  rafId = requestAnimationFrame(loop);
+}
+function stop(){ if(!isPlaying) return; isPlaying=false; if(rafId) cancelAnimationFrame(rafId); rafId=null; playOffset=0; }
+function pause(){ if(!isPlaying) return; isPlaying=false; if(rafId) cancelAnimationFrame(rafId); rafId=null; // compute offset
+  // approximate offset via timecode
+  const parts = timecode.textContent.split(' / ')[0]; playOffset = parseFloat(parts) || 0;
+}
+playBtn.addEventListener('click', ()=> play()); pauseBtn.addEventListener('click', ()=> pause());
+
+// export: capture canvas + mixed audio
+exportBtn.addEventListener('click', async ()=>{
+  const total = getTotalDuration(); if(total<=0) return alert('タイムラインが空です');
+  // prepare audio: create sources for each clip sequentially played into AudioContext destination
+  const dest = audioCtx.createMediaStreamDestination(); const combinedStream = previewCanvas.captureStream(30);
+  // connect masterGain to dest as well to capture volume-controlled audio
+  masterGain.disconnect(); masterGain.connect(audioCtx.destination); masterGain.connect(dest);
+  // for each clip, create an HTMLMediaElement and schedule play via setTimeout when recording
+  const mediaElements = [];
+  for(const clip of timeline){ const media = mediaPool.find(m=>m.id===clip.mediaId); if(media.kind==='video' || media.kind==='audio'){
+      const el = document.createElement(media.kind==='video'?'video':'audio'); el.src = media.url; el.crossOrigin='anonymous'; el.preload='auto'; el.muted = false; el.volume = 1.0; mediaElements.push({el, clip});
+    }}
+  // start recording
+  const outStream = new MediaStream(); combinedStream.getVideoTracks().forEach(t=> outStream.addTrack(t)); dest.stream.getAudioTracks().forEach(t=> outStream.addTrack(t));
+  const recorder = new MediaRecorder(outStream, {mimeType:'video/webm;codecs=vp9,opus'});
+  const chunks = [];
+  recorder.ondataavailable = e=>{ if(e.data.size) chunks.push(e.data); };
+  recorder.onstop = ()=>{
+    const blob = new Blob(chunks, {type:'video/webm'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = (document.getElementById('projName').value||'yui-kodo') + '.webm'; a.click(); // reconnect masterGain
+    masterGain.disconnect(); masterGain.connect(audioCtx.destination);
+  };
+
+  recorder.start();
+  // play timeline sequentially: play mediaElements at correct offsets
+  const startTime = audioCtx.currentTime; // now
+  for(const me of mediaElements){ const {el, clip} = me; // connect element to audioCtx
+    const src = audioCtx.createMediaElementSource(el); src.connect(masterGain);
+    // schedule play using setTimeout to align with real time
+    const wait = (clip.pos - 0) * 1000; // since we start immediately at timeline 0
+    setTimeout(()=>{ el.currentTime = clip.start; el.playbackRate = parseFloat(playbackRate.value); el.play(); }, Math.max(0, Math.round(wait)));
+    // stop after duration
+    setTimeout(()=>{ try{ el.pause(); el.currentTime = 0; }catch(e){} }, Math.max(0, Math.round(wait + (clip.end-clip.start)*1000)));
+  }
+
+  // drive canvas drawing and stop recorder after total
+  let recStart = performance.now(); function drive(){ const elapsed = ((performance.now() - recStart)/1000) * parseFloat(playbackRate.value); drawFrame(elapsed); if(elapsed < total) requestAnimationFrame(drive); }
+  drive();
+  setTimeout(()=>{ recorder.stop(); }, (total / parseFloat(playbackRate.value))*1000 + 500);
+});
+
+// simple project save/load
+document.getElementById('saveProj').addEventListener('click', ()=>{
+  const data = {mediaPool: mediaPool.map(m=>({id:m.id,name:m.file.name,type:m.file.type})), timeline, overlays, meta:{name:document.getElementById('projName').value||'yui-kodo'}};
+  const blob = new Blob([JSON.stringify(data)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = (document.getElementById('projName').value||'yui-kodo') + '.ykproj'; a.click();
+});
+
+document.getElementById('loadProj').addEventListener('click', ()=>{
+  const input = document.createElement('input'); input.type='file'; input.accept='.ykproj,.json'; input.onchange = e=>{ const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = ()=>{ try{ const obj = JSON.parse(r.result); // NOTE: media files must be re-imported manually due to browser security. We'll load metadata only.
+      timeline = obj.timeline || []; overlays = obj.overlays || []; document.getElementById('projName').value = obj.meta?.name||''; pushHistory(); rebuildUI(); alert('プロジェクト読み込み: メディアは再アップロードが必要です'); }catch(err){ alert('読み込みエラー'); } }; r.readAsText(f); }; input.click();
+});
+
+// new project
+document.getElementById('newProj').addEventListener('click', ()=>{ if(!confirm('新規プロジェクトを作成しますか？現在の作業は失われます。')) return; mediaPool=[]; timeline=[]; overlays=[]; selectedClip=null; rebuildUI(); pushHistory(); });
+
+// basic UI helpers
+function rebuildUI(){ rebuildMediaList(); rebuildUITracks(); }
+function rebuildUITracks(){ rebuildMediaList(); rebuildUITimeline(); }
+function rebuildUITimeline(){ // re-create timeline track
+  videoTrack.innerHTML=''; rebuildUI(); }
+
+// helper for initial state
+pushHistory();
+
+</script>
 </body>
 </html>
