@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>クリーパーパズル</title>
+  <title>パズリング自作</title>
   <style>
     body {
       background-color: #1a1a1a;
@@ -17,12 +17,21 @@
       border: 4px solid #0f0;
       margin-top: 10px;
     }
+
+    h1 {
+      animation: glow 2s infinite alternate;
+    }
+
+    @keyframes glow {
+      from { text-shadow: 0 0 5px #0f0; }
+      to { text-shadow: 0 0 20px #0f0, 0 0 30px lime; }
+    }
   </style>
 </head>
 <body>
-  <h1>💣 クリーパーパズル 💣</h1>
+  <h1>パズリング自作</h1>
   <canvas id="gameCanvas" width="160" height="320"></canvas>
-  <p>← → で移動、下に落ちるよ！</p>
+  <p>← → 移動｜↑ 回転｜↓ 落下</p>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
@@ -31,14 +40,25 @@
     const COLS = 8;
     const ROWS = 16;
     const BLOCK_SIZE = 20;
+    const COLORS = ["limegreen", "red", "yellow", "cyan", "magenta", "orange"];
 
-    let grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+    let grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
 
-    let current = {
-      x: 3,
-      y: 0,
-      color: "limegreen"
-    };
+    function getRandomColor() {
+      return COLORS[Math.floor(Math.random() * COLORS.length)];
+    }
+
+    function createPair() {
+      return {
+        blocks: [
+          { x: 3, y: 0, color: getRandomColor() },
+          { x: 3, y: 1, color: getRandomColor() }
+        ],
+        rotation: 0
+      };
+    }
+
+    let current = createPair();
 
     function drawBlock(x, y, color) {
       ctx.fillStyle = color;
@@ -56,15 +76,50 @@
           }
         }
       }
-      drawBlock(current.x, current.y, current.color);
+      current.blocks.forEach(b => drawBlock(b.x, b.y, b.color));
+    }
+
+    function canMove(dx, dy) {
+      return current.blocks.every(b => {
+        const nx = b.x + dx;
+        const ny = b.y + dy;
+        return nx >= 0 && nx < COLS && ny < ROWS && (!grid[ny] || !grid[ny][nx]);
+      });
+    }
+
+    function move(dx, dy) {
+      if (canMove(dx, dy)) {
+        current.blocks.forEach(b => {
+          b.x += dx;
+          b.y += dy;
+        });
+      }
+    }
+
+    function rotate() {
+      const [pivot, sub] = current.blocks;
+      const dx = sub.x - pivot.x;
+      const dy = sub.y - pivot.y;
+      const newX = pivot.x - dy;
+      const newY = pivot.y + dx;
+      if (
+        newX >= 0 && newX < COLS &&
+        newY >= 0 && newY < ROWS &&
+        !grid[newY][newX]
+      ) {
+        sub.x = newX;
+        sub.y = newY;
+      }
     }
 
     function drop() {
-      if (current.y + 1 < ROWS && !grid[current.y + 1][current.x]) {
-        current.y++;
+      if (canMove(0, 1)) {
+        move(0, 1);
       } else {
-        grid[current.y][current.x] = current.color;
-        current = { x: 3, y: 0, color: "limegreen" };
+        current.blocks.forEach(b => {
+          if (b.y >= 0) grid[b.y][b.x] = b.color;
+        });
+        current = createPair();
       }
       drawGrid();
     }
@@ -72,8 +127,10 @@
     setInterval(drop, 500);
 
     document.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowLeft" && current.x > 0) current.x--;
-      if (e.key === "ArrowRight" && current.x < COLS - 1) current.x++;
+      if (e.key === "ArrowLeft") move(-1, 0);
+      if (e.key === "ArrowRight") move(1, 0);
+      if (e.key === "ArrowDown") move(0, 1);
+      if (e.key === "ArrowUp") rotate();
       drawGrid();
     });
   </script>
