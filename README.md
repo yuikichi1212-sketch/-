@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>クリーパーパズルEX++</title>
+  <title>パズル回しw</title>
   <style>
     body {
       background-color: #111;
@@ -35,14 +35,14 @@
   </style>
 </head>
 <body>
-  <h1>💣 クリーパーパズルEX++ 💣</h1>
+  <h1>パズル回しw</h1>
   <canvas id="gameCanvas" width="160" height="320"></canvas>
   <div id="score">スコア: 0</div>
   <div id="level">レベル: 1</div>
   <div id="highscore">ハイスコア: 0</div>
-  <div id="gameover">💥 GAME OVER 💥</div>
+  <div id="gameover"> GAME OVER してて草</div>
   <button id="startBtn">スタート</button>
-  <button id="restartBtn" style="display:none;">もう一度あそぶ</button>
+  <button id="restartBtn" style="display:none;">もう一度あそぶよね？</button>
 
   <audio id="pop" src="pop.mp3"></audio>
   <audio id="bgm" src="bgm.mp3" loop></audio>
@@ -208,5 +208,9 @@
       clearInterval(dropInterval);
       gameoverDisplay.style.display = "block";
       restartBtn.style.display = "inline-block";
-      <style>
-    <html>
+      bgm.pause();
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (gameOver) return;
+      if (e.key
