@@ -1,230 +1,683 @@
-import React from 'react';
-import { 
-  Plus, Search, Calendar as CalendarIcon, FileText, Upload, Download, 
-  Cloud, ChevronLeft, ChevronRight, MoreHorizontal, Settings, 
-  HelpCircle, Clock, PieChart, LayoutGrid
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>カレンダーアプリ完全版</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Noto Sans JP", system-ui, sans-serif;
+    }
+    body {
+      background: #f5f5f5;
+    }
+    .app {
+      display: flex;
+      height: 100vh;
+    }
+    /* サイドバー */
+    .sidebar {
+      width: 260px;
+      background: #ffffff;
+      border-right: 1px solid #ddd;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .sidebar h2 {
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+    .event-list {
+      min-height: 60px;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 13px;
+    }
+    .event-item {
+      margin-bottom: 4px;
+    }
+    .sidebar-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: auto;
+    }
+    .sidebar button {
+      padding: 8px;
+      font-size: 13px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: #fafafa;
+      cursor: pointer;
+    }
+    .sidebar button:hover {
+      background: #eaeaea;
+    }
+    .memo-area {
+      border: 1px solid #eee;
+      border-radius: 6px;
+      padding: 6px;
+      font-size: 12px;
+      min-height: 60px;
+      white-space: pre-wrap;
+    }
 
-export default function CalendarApp() {
-  // 画像の日付データ：2026年1月（開始日は2025/12/28）
-  const calendarData = [
-    { day: 28, isPrevMonth: true, events: [{ title: 'ゴルフ', color: 'bg-[#84cc16]' }] },
-    { day: 29, isPrevMonth: true, events: [{ title: 'nainai来るよ', color: 'bg-[#00bfa5]' }] },
-    { day: 30, isPrevMonth: true, events: [] },
-    { day: 31, isPrevMonth: true, events: [] },
-    { day: 1, isPrevMonth: false, events: [] },
-    { day: 2, isPrevMonth: false, events: [] },
-    { day: 3, isPrevMonth: false, events: [] },
-    { day: 4, isPrevMonth: false, events: [{ title: 'ゴルフ', color: 'bg-[#84cc16]' }] },
-    { day: 5, isPrevMonth: false, events: [] },
-    { day: 6, isPrevMonth: false, events: [] },
-    { day: 7, isPrevMonth: false, events: [{ title: '始業式', color: 'bg-[#3b82f6]' }] },
-    { day: 8, isPrevMonth: false, events: [] },
-    { day: 9, isPrevMonth: false, events: [] },
-    { day: 10, isPrevMonth: false, events: [] },
-    { day: 11, isPrevMonth: false, events: [{ title: 'ゴルフ', color: 'bg-[#84cc16]' }] },
-    { day: 12, isPrevMonth: false, events: [] },
-    { day: 13, isPrevMonth: false, events: [] },
-    { day: 14, isPrevMonth: false, events: [] },
-    { day: 15, isPrevMonth: false, events: [] },
-    { day: 16, isPrevMonth: false, events: [] },
-    { day: 17, isPrevMonth: false, events: [] },
-    { day: 18, isPrevMonth: false, events: [{ title: 'ゴルフ', color: 'bg-[#84cc16]' }] },
-    { day: 19, isPrevMonth: false, events: [] },
-    { day: 20, isPrevMonth: false, events: [{ title: '半日', color: 'bg-[#0ea5e9]' }] },
-    { day: 21, isPrevMonth: false, events: [{ title: '休み', color: 'bg-[#0ea5e9]' }] },
-    { day: 22, isPrevMonth: false, events: [{ title: '休み', color: 'bg-[#0ea5e9]' }] },
-    { day: 23, isPrevMonth: false, events: [{ title: '英検間近', color: 'bg-[#ec4899]' }] },
-    { day: 24, isPrevMonth: false, events: [{ title: 'ゴルフ', color: 'bg-[#84cc16]' }, { title: '武道大会', color: 'bg-[#f97316]' }] },
-    { day: 25, isPrevMonth: false, events: [{ title: '英検当日', color: 'bg-[#ef4444]' }, { title: 'ゴルフ', color: 'bg-[#84cc16]' }] },
-    { day: 26, isPrevMonth: false, events: [] },
-    { day: 27, isPrevMonth: false, events: [{ title: '英検対策', color: 'bg-[#a855f7]' }] },
-    { day: 28, isPrevMonth: false, events: [{ title: '百人一首大会', color: 'bg-[#ef4444]' }] },
-    { day: 29, isPrevMonth: false, events: [{ title: '英検対策', color: 'bg-[#a855f7]' }] },
-    { day: 30, isPrevMonth: false, isToday: true, events: [{ title: '上小田井クリニック', color: 'bg-[#475569]' }] },
-    { day: 31, isPrevMonth: false, events: [] },
-  ];
+    /* メイン */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .month-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .month-nav button {
+      padding: 4px 8px;
+      cursor: pointer;
+    }
+    #month-label {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .view-switch button {
+      padding: 4px 10px;
+      margin-left: 4px;
+      border-radius: 16px;
+      border: 1px solid #ccc;
+      background: #fafafa;
+      font-size: 13px;
+    }
+    .view-switch .active {
+      background: #1976d2;
+      color: #fff;
+      border-color: #1976d2;
+    }
 
-  return (
-    <div className="flex h-screen bg-[#f3f4f6] text-slate-700 font-sans overflow-hidden">
-      {/* ---------------- 左サイドバー ---------------- */}
-      <aside className="w-[280px] bg-[#f8f9fc] flex flex-col border-r border-slate-200 shadow-sm z-10">
-        
-        {/* 左上黒ヘッダー */}
-        <div className="bg-black text-white h-12 flex items-center px-4 justify-between shrink-0">
-          <div className="flex items-center gap-2">
-            <ChevronLeft size={16} className="text-gray-400" />
-            <span className="font-bold text-sm">タスク表示</span>
-          </div>
-        </div>
+    /* カレンダー */
+    .calendar {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 0 4px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      height: calc(100% - 40px);
+    }
+    .calendar-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-size: 13px;
+      margin-bottom: 8px;
+      color: #555;
+    }
+    .calendar-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      grid-auto-rows: 1fr;
+      gap: 2px;
+    }
+    .day-cell {
+      border: 1px solid #eee;
+      padding: 4px;
+      font-size: 12px;
+      position: relative;
+      cursor: pointer;
+    }
+    .day-cell:hover {
+      background: #fafafa;
+    }
+    .day-number {
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+    .event-chip {
+      display: block;
+      border-radius: 10px;
+      padding: 2px 4px;
+      font-size: 10px;
+      color: #fff;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .event-golf { background: #4caf50; }
+    .event-exam { background: #2196f3; }
+    .event-holiday { background: #f44336; }
+    .event-clinic { background: #9c27b0; }
+    .event-tournament { background: #ff9800; }
+    .event-other { background: #607d8b; }
 
-        {/* メニューエリア */}
-        <div className="p-4 flex-1 overflow-y-auto">
-          <div className="mb-6">
-            <p className="text-xs text-slate-400 font-bold mb-3 px-2">機能</p>
-            <nav className="space-y-1">
-              <NavItem icon={<FileText size={18} className="text-purple-500" />} text="AI予定作成" activeText />
-              <NavItem icon={<FileText size={18} className="text-orange-400" />} text="メモ" />
-              <NavItem icon={<Upload size={18} className="text-emerald-500" />} text="インポート" />
-              <NavItem icon={<Download size={18} className="text-blue-500" />} text="エクスポート" />
-              <NavItem icon={<Cloud size={18} className="text-sky-500" />} text="カレンダー連携" />
-            </nav>
-          </div>
+    /* モーダル */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .modal {
+      background: #fff;
+      border-radius: 8px;
+      padding: 16px;
+      width: 320px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      font-size: 14px;
+    }
+    .modal h3 {
+      margin-bottom: 8px;
+    }
+    .modal label {
+      display: block;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    .modal input, .modal select, .modal textarea {
+      width: 100%;
+      margin-top: 4px;
+      padding: 4px;
+      font-size: 13px;
+    }
+    .modal textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+    .modal-buttons {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .modal-buttons button {
+      padding: 4px 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .danger {
+      background: #f44336;
+      color: #fff;
+      border: none;
+    }
+    .primary {
+      background: #1976d2;
+      color: #fff;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h2>今日の予定</h2>
+      <div id="today-events" class="event-list"></div>
 
-          <div className="h-px bg-slate-200 my-4" />
+      <h2>明日の予定</h2>
+      <div id="tomorrow-events" class="event-list"></div>
 
-          {/* 表示切り替えタブ */}
-          <div className="bg-white p-1 rounded-full border border-slate-200 flex mb-6 shadow-sm">
-            <TabButton active text="今日" />
-            <TabButton text="今週" />
-            <TabButton text="今月" />
-            <TabButton icon={<PieChart size={14} />} text="統計" />
-          </div>
+      <h2>メモ</h2>
+      <div id="memo-view" class="memo-area"></div>
 
-          {/* 今日の予定カード */}
-          <div className="space-y-4">
-            <ScheduleCard title="今日の予定" count="1件" icon={<CalendarIcon size={16} />}>
-              <div className="mt-3">
-                <div className="font-bold text-sm text-slate-800">上小田井クリニック</div>
-                <div className="flex items-center gap-1 text-xs text-slate-400 mt-1">
-                  <Clock size={12} />
-                  <span>00:00</span>
-                </div>
-              </div>
-            </ScheduleCard>
-
-            <ScheduleCard title="明日の予定" count="0件" icon={<CalendarIcon size={16} />}>
-              <div className="mt-8 text-center text-xs text-slate-400 pb-4">
-                予定なし
-              </div>
-            </ScheduleCard>
-          </div>
-        </div>
-
-        {/* 左下フッターメニュー */}
-        <div className="p-4 border-t border-slate-200 space-y-3 bg-[#f8f9fc]">
-          <FooterItem icon={<Clock size={16} />} text="バージョン履歴" />
-          <FooterItem icon={<HelpCircle size={16} />} text="ヘルプ" />
-          <FooterItem icon={<Settings size={16} />} text="設定" />
-        </div>
-      </aside>
-
-      {/* ---------------- メインコンテンツ ---------------- */}
-      <main className="flex-1 flex flex-col min-w-0 bg-white">
-        
-        {/* ヘッダーエリア */}
-        <header className="px-6 py-4 border-b border-slate-100">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">2026年1月</h1>
-              <p className="text-xs text-slate-500 mt-1">1月30日(金) 13:39</p>
-            </div>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-1 shadow-md transition-colors">
-              <Plus size={16} /> 作成
-            </button>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <button className="px-3 py-1.5 border border-slate-200 rounded-md text-sm font-medium hover:bg-slate-50 bg-white">今日</button>
-              <div className="flex border border-slate-200 rounded-md bg-white">
-                <button className="p-1.5 hover:bg-slate-50 border-r border-slate-200"><ChevronLeft size={16} /></button>
-                <button className="p-1.5 hover:bg-slate-50"><ChevronRight size={16} /></button>
-              </div>
-            </div>
-            
-            <div className="flex gap-2 text-sm text-slate-500 bg-white border border-slate-200 rounded-lg p-1">
-              <button className="px-3 py-1 rounded-md bg-blue-600 text-white shadow-sm">月</button>
-              <button className="px-3 py-1 rounded-md hover:bg-slate-100">週</button>
-              <button className="px-3 py-1 rounded-md hover:bg-slate-100">日</button>
-            </div>
-          </div>
-        </header>
-
-        {/* 検索バー */}
-        <div className="px-6 py-3 bg-[#fafafa]">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="イベントを検索..." 
-              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 transition-shadow"
-            />
-          </div>
-        </div>
-
-        {/* カレンダーグリッド */}
-        <div className="flex-1 overflow-auto p-4 bg-[#fafafa]">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm h-full flex flex-col overflow-hidden">
-            {/* 曜日ヘッダー */}
-            <div className="grid grid-cols-7 border-b border-slate-100">
-              {['日', '月', '火', '水', '木', '金', '土'].map((day, i) => (
-                <div key={i} className={`py-3 text-center text-xs font-bold ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-slate-500'}`}>
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            {/* 日付セル */}
-            <div className="grid grid-cols-7 grid-rows-5 flex-1 divide-x divide-y divide-slate-100">
-              {calendarData.map((data, index) => (
-                <div key={index} className={`p-2 min-h-[100px] flex flex-col relative ${data.isToday ? 'bg-slate-50' : 'bg-white'}`}>
-                  
-                  {/* 日付数字 */}
-                  <span className={`text-xs font-medium mb-1 ${data.isToday ? 'bg-slate-700 text-white w-6 h-6 flex items-center justify-center rounded-full' : 'text-slate-500'}`}>
-                    {data.day}
-                  </span>
-
-                  {/* イベントリスト */}
-                  <div className="flex flex-col gap-1 overflow-y-auto">
-                    {data.events.map((event, i) => (
-                      <div key={i} className={`${event.color} text-white text-[10px] px-2 py-1 rounded-[4px] font-medium truncate shadow-sm`}>
-                        {event.title}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-// ---- サブコンポーネント ----
-
-const NavItem = ({ icon, text, activeText }) => (
-  <button className={`w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 transition-colors ${activeText ? 'text-purple-600' : 'text-slate-600'}`}>
-    {icon}
-    <span>{text}</span>
-  </button>
-);
-
-const FooterItem = ({ icon, text }) => (
-  <button className="flex items-center gap-3 text-slate-500 text-xs font-medium hover:text-slate-800 transition-colors w-full">
-    {icon}
-    <span>{text}</span>
-  </button>
-);
-
-const TabButton = ({ text, active, icon }) => (
-  <button className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-bold rounded-full transition-all ${active ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}`}>
-    {icon}
-    {text}
-  </button>
-);
-
-const ScheduleCard = ({ title, count, icon, children }) => (
-  <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
-    <div className="flex justify-between items-center mb-2">
-      <div className="flex items-center gap-2">
-        <span className="text-slate-400">{icon}</span>
-        <h4 className="font-bold text-sm text-slate-800">{title}</h4>
+      <div class="sidebar-buttons">
+        <button id="ai-schedule-btn">AIスケジュール作成</button>
+        <button id="memo-edit-btn">メモ編集</button>
+        <button id="export-btn">エクスポート</button>
+        <button id="import-btn">インポート</button>
+        <button id="clear-btn">全データ削除</button>
       </div>
-      <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded-full font-bold">{count}</span>
-    </div>
-    {children}
+    </aside>
+
+    <main class="main">
+      <header class="top-bar">
+        <div class="month-nav">
+          <button id="prev-month">＜</button>
+          <span id="month-label"></span>
+          <button id="next-month">＞</button>
+        </div>
+        <div class="view-switch">
+          <button class="active">月</button>
+          <button disabled>週</button>
+          <button disabled>日</button>
+        </div>
+      </header>
+
+      <section class="calendar">
+        <div class="calendar-header">
+          <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+        </div>
+        <div id="calendar-grid" class="calendar-grid"></div>
+      </section>
+    </main>
   </div>
-);
+
+  <div id="modal-root"></div>
+
+  <script>
+    // ===== データ管理 =====
+    const STORAGE_KEY_EVENTS = "calendar_events_v1";
+    const STORAGE_KEY_MEMO = "calendar_memo_v1";
+
+    let events = loadEvents();
+    let memoText = loadMemo();
+
+    let current = new Date();
+    let currentYear = current.getFullYear();
+    let currentMonth = current.getMonth();
+
+    const monthLabel = document.getElementById("month-label");
+    const calendarGrid = document.getElementById("calendar-grid");
+    const todayEventsEl = document.getElementById("today-events");
+    const tomorrowEventsEl = document.getElementById("tomorrow-events");
+    const memoViewEl = document.getElementById("memo-view");
+    const modalRoot = document.getElementById("modal-root");
+
+    document.getElementById("prev-month").addEventListener("click", () => {
+      currentMonth--;
+      if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+      }
+      renderCalendar();
+    });
+
+    document.getElementById("next-month").addEventListener("click", () => {
+      currentMonth++;
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      }
+      renderCalendar();
+    });
+
+    document.getElementById("memo-edit-btn").addEventListener("click", () => {
+      const text = prompt("メモを入力してください：", memoText || "");
+      if (text !== null) {
+        memoText = text;
+        saveMemo();
+        renderMemo();
+      }
+    });
+
+    document.getElementById("export-btn").addEventListener("click", () => {
+      const data = {
+        events,
+        memo: memoText,
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "calendar_export.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("import-btn").addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "application/json";
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            if (Array.isArray(data.events)) events = data.events;
+            if (typeof data.memo === "string") memoText = data.memo;
+            saveEvents();
+            saveMemo();
+            renderAll();
+          } catch (err) {
+            alert("インポートに失敗しました。");
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    });
+
+    document.getElementById("clear-btn").addEventListener("click", () => {
+      if (confirm("全ての予定とメモを削除しますか？")) {
+        events = [];
+        memoText = "";
+        saveEvents();
+        saveMemo();
+        renderAll();
+      }
+    });
+
+    document.getElementById("ai-schedule-btn").addEventListener("click", () => {
+      runAISchedule();
+    });
+
+    function loadEvents() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_EVENTS);
+        if (!raw) return [];
+        return JSON.parse(raw);
+      } catch {
+        return [];
+      }
+    }
+
+    function saveEvents() {
+      localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events));
+    }
+
+    function loadMemo() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_MEMO);
+        if (!raw) return "";
+        return raw;
+      } catch {
+        return "";
+      }
+    }
+
+    function saveMemo() {
+      localStorage.setItem(STORAGE_KEY_MEMO, memoText || "");
+    }
+
+    // ===== レンダリング =====
+    function renderCalendar() {
+      const firstDay = new Date(currentYear, currentMonth, 1);
+      const lastDay = new Date(currentYear, currentMonth + 1, 0);
+      const startWeekday = firstDay.getDay();
+      const daysInMonth = lastDay.getDate();
+
+      monthLabel.textContent = `${currentYear}年 ${currentMonth + 1}月`;
+
+      calendarGrid.innerHTML = "";
+
+      for (let i = 0; i < startWeekday; i++) {
+        const cell = document.createElement("div");
+        cell.className = "day-cell";
+        calendarGrid.appendChild(cell);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const cell = document.createElement("div");
+        cell.className = "day-cell";
+
+        const num = document.createElement("div");
+        num.className = "day-number";
+        num.textContent = day;
+        cell.appendChild(num);
+
+        const dateStr = formatDate(currentYear, currentMonth + 1, day);
+        const dayEvents = events.filter(e => e.date === dateStr);
+
+        dayEvents.forEach(ev => {
+          const chip = document.createElement("span");
+          chip.className = `event-chip event-${ev.type || "other"}`;
+          chip.textContent = ev.title;
+          cell.appendChild(chip);
+        });
+
+        cell.addEventListener("click", () => {
+          openEventModal(dateStr);
+        });
+
+        calendarGrid.appendChild(cell);
+      }
+
+      renderSideBar();
+    }
+
+    function renderSideBar() {
+      const today = new Date();
+      const todayStr = formatDate(today.getFullYear(), today.getMonth() + 1, today.getDate());
+      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+      const tomorrowStr = formatDate(tomorrow.getFullYear(), tomorrow.getMonth() + 1, tomorrow.getDate());
+
+      const todayList = events.filter(e => e.date === todayStr);
+      const tomorrowList = events.filter(e => e.date === tomorrowStr);
+
+      todayEventsEl.innerHTML = todayList.length
+        ? todayList.map(e => `<div class="event-item">${e.title}</div>`).join("")
+        : "<div>予定はありません</div>";
+
+      tomorrowEventsEl.innerHTML = tomorrowList.length
+        ? tomorrowList.map(e => `<div class="event-item">${e.title}</div>`).join("")
+        : "<div>予定はありません</div>";
+    }
+
+    function renderMemo() {
+      memoViewEl.textContent = memoText || "メモはまだありません。";
+    }
+
+    function renderAll() {
+      renderCalendar();
+      renderMemo();
+    }
+
+    // ===== モーダルで予定編集 =====
+    function openEventModal(dateStr) {
+      const dayEvents = events.filter(e => e.date === dateStr);
+
+      const backdrop = document.createElement("div");
+      backdrop.className = "modal-backdrop";
+
+      const modal = document.createElement("div");
+      modal.className = "modal";
+
+      const title = document.createElement("h3");
+      title.textContent = `${dateStr} の予定`;
+      modal.appendChild(title);
+
+      const list = document.createElement("div");
+      if (dayEvents.length === 0) {
+        list.textContent = "予定はありません。";
+      } else {
+        dayEvents.forEach((ev, index) => {
+          const row = document.createElement("div");
+          row.style.marginTop = "6px";
+          row.textContent = `${index + 1}. ${ev.title}`;
+          row.style.cursor = "pointer";
+          row.addEventListener("click", () => {
+            openEditForm(dateStr, ev);
+            backdrop.remove();
+          });
+          list.appendChild(row);
+        });
+      }
+      modal.appendChild(list);
+
+      const addBtn = document.createElement("button");
+      addBtn.textContent = "予定を追加";
+      addBtn.style.marginTop = "10px";
+      addBtn.addEventListener("click", () => {
+        openEditForm(dateStr, null);
+        backdrop.remove();
+      });
+      modal.appendChild(addBtn);
+
+      const closeArea = document.createElement("div");
+      closeArea.className = "modal-buttons";
+      const closeBtn = document.createElement("button");
+      closeBtn.textContent = "閉じる";
+      closeBtn.addEventListener("click", () => backdrop.remove());
+      closeArea.appendChild(closeBtn);
+      modal.appendChild(closeArea);
+
+      backdrop.appendChild(modal);
+      modalRoot.innerHTML = "";
+      modalRoot.appendChild(backdrop);
+    }
+
+    function openEditForm(dateStr, eventObj) {
+      const isEdit = !!eventObj;
+
+      const backdrop = document.createElement("div");
+      backdrop.className = "modal-backdrop";
+
+      const modal = document.createElement("div");
+      modal.className = "modal";
+
+      const title = document.createElement("h3");
+      title.textContent = isEdit ? "予定を編集" : "予定を追加";
+      modal.appendChild(title);
+
+      const labelTitle = document.createElement("label");
+      labelTitle.textContent = "タイトル";
+      const inputTitle = document.createElement("input");
+      inputTitle.value = eventObj ? eventObj.title : "";
+      labelTitle.appendChild(inputTitle);
+      modal.appendChild(labelTitle);
+
+      const labelType = document.createElement("label");
+      labelType.textContent = "種類（色分け）";
+      const selectType = document.createElement("select");
+      const types = [
+        { value: "golf", label: "ゴルフ（緑）" },
+        { value: "exam", label: "英検・勉強（青）" },
+        { value: "holiday", label: "休み（赤）" },
+        { value: "clinic", label: "病院（紫）" },
+        { value: "tournament", label: "大会（オレンジ）" },
+        { value: "other", label: "その他（グレー）" },
+      ];
+      types.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t.value;
+        opt.textContent = t.label;
+        if (eventObj && eventObj.type === t.value) opt.selected = true;
+        selectType.appendChild(opt);
+      });
+      labelType.appendChild(selectType);
+      modal.appendChild(labelType);
+
+      const labelMemo = document.createElement("label");
+      labelMemo.textContent = "メモ（任意）";
+      const textareaMemo = document.createElement("textarea");
+      textareaMemo.value = eventObj ? (eventObj.note || "") : "";
+      labelMemo.appendChild(textareaMemo);
+      modal.appendChild(labelMemo);
+
+      const btnArea = document.createElement("div");
+      btnArea.className = "modal-buttons";
+
+      if (isEdit) {
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "削除";
+        delBtn.className = "danger";
+        delBtn.addEventListener("click", () => {
+          if (confirm("この予定を削除しますか？")) {
+            events = events.filter(e => e !== eventObj);
+            saveEvents();
+            renderAll();
+            backdrop.remove();
+          }
+        });
+        btnArea.appendChild(delBtn);
+      }
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.textContent = "キャンセル";
+      cancelBtn.addEventListener("click", () => backdrop.remove());
+      btnArea.appendChild(cancelBtn);
+
+      const saveBtn = document.createElement("button");
+      saveBtn.textContent = "保存";
+      saveBtn.className = "primary";
+      saveBtn.addEventListener("click", () => {
+        const titleVal = inputTitle.value.trim();
+        if (!titleVal) {
+          alert("タイトルを入力してください。");
+          return;
+        }
+        const newEvent = {
+          id: eventObj ? eventObj.id : generateId(),
+          date: dateStr,
+          title: titleVal,
+          type: selectType.value,
+          note: textareaMemo.value.trim(),
+        };
+        if (isEdit) {
+          events = events.map(e => e.id === eventObj.id ? newEvent : e);
+        } else {
+          events.push(newEvent);
+        }
+        saveEvents();
+        renderAll();
+        backdrop.remove();
+      });
+      btnArea.appendChild(saveBtn);
+
+      modal.appendChild(btnArea);
+      backdrop.appendChild(modal);
+      modalRoot.innerHTML = "";
+      modalRoot.appendChild(backdrop);
+    }
+
+    // ===== AIスケジュール（簡易版） =====
+    function runAISchedule() {
+      const keyword = prompt("どんな予定を自動で入れますか？（例：英検対策）", "英検対策");
+      if (!keyword) return;
+
+      const countStr = prompt("何回入れますか？（例：5）", "5");
+      const count = parseInt(countStr, 10);
+      if (!count || count <= 0) return;
+
+      const today = new Date();
+      let added = 0;
+      let dayCursor = new Date(today);
+
+      while (added < count && added < 60) {
+        const dateStr = formatDate(dayCursor.getFullYear(), dayCursor.getMonth() + 1, dayCursor.getDate());
+        const isWeekend = dayCursor.getDay() === 0 || dayCursor.getDay() === 6;
+        const hasEvent = events.some(e => e.date === dateStr);
+
+        if (!hasEvent && !isWeekend) {
+          events.push({
+            id: generateId(),
+            date: dateStr,
+            title: keyword,
+            type: "exam",
+            note: "AIスケジュールで自動追加",
+          });
+          added++;
+        }
+        dayCursor.setDate(dayCursor.getDate() + 1);
+      }
+
+      saveEvents();
+      renderAll();
+      alert(`${added}件の予定を自動で追加しました。`);
+    }
+
+    // ===== ユーティリティ =====
+    function formatDate(y, m, d) {
+      return [
+        y,
+        String(m).padStart(2, "0"),
+        String(d).padStart(2, "0"),
+      ].join("-");
+    }
+
+    function generateId() {
+      return "ev_" + Math.random().toString(36).slice(2, 10);
+    }
+
+    // 初期描画
+    renderAll();
+  </script>
+</body>
+</html>
