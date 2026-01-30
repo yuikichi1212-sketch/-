@@ -1,683 +1,584 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>カレンダーアプリ完全版</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: "Noto Sans JP", system-ui, sans-serif;
-    }
-    body {
-      background: #f5f5f5;
-    }
-    .app {
-      display: flex;
-      height: 100vh;
-    }
-    /* サイドバー */
-    .sidebar {
-      width: 260px;
-      background: #ffffff;
-      border-right: 1px solid #ddd;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .sidebar h2 {
-      font-size: 16px;
-      margin-bottom: 4px;
-    }
-    .event-list {
-      min-height: 60px;
-      border: 1px solid #eee;
-      border-radius: 6px;
-      padding: 8px;
-      font-size: 13px;
-    }
-    .event-item {
-      margin-bottom: 4px;
-    }
-    .sidebar-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: auto;
-    }
-    .sidebar button {
-      padding: 8px;
-      font-size: 13px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      background: #fafafa;
-      cursor: pointer;
-    }
-    .sidebar button:hover {
-      background: #eaeaea;
-    }
-    .memo-area {
-      border: 1px solid #eee;
-      border-radius: 6px;
-      padding: 6px;
-      font-size: 12px;
-      min-height: 60px;
-      white-space: pre-wrap;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カレンダーアプリ 2026年1月</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* --- 基本設定 --- */
+        :root {
+            --bg-main: #f3f4f6;
+            --bg-sidebar: #f8f9fc;
+            --border-color: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --color-blue: #2563eb;
+            --color-green-golf: #84cc16;
+            --color-green-nainai: #00bfa5;
+            --color-blue-school: #3b82f6;
+            --color-sky-work: #0ea5e9;
+            --color-pink-exam: #ec4899;
+            --color-orange-budo: #f97316;
+            --color-red-exam: #ef4444;
+            --color-purple-study: #a855f7;
+            --color-dark-clinic: #475569;
+        }
 
-    /* メイン */
-    .main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 16px;
-    }
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .month-nav {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .month-nav button {
-      padding: 4px 8px;
-      cursor: pointer;
-    }
-    #month-label {
-      font-size: 18px;
-      font-weight: 600;
-    }
-    .view-switch button {
-      padding: 4px 10px;
-      margin-left: 4px;
-      border-radius: 16px;
-      border: 1px solid #ccc;
-      background: #fafafa;
-      font-size: 13px;
-    }
-    .view-switch .active {
-      background: #1976d2;
-      color: #fff;
-      border-color: #1976d2;
-    }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    /* カレンダー */
-    .calendar {
-      background: #ffffff;
-      border-radius: 8px;
-      padding: 12px;
-      box-shadow: 0 0 4px rgba(0,0,0,0.05);
-      display: flex;
-      flex-direction: column;
-      height: calc(100% - 40px);
-    }
-    .calendar-header {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      text-align: center;
-      font-size: 13px;
-      margin-bottom: 8px;
-      color: #555;
-    }
-    .calendar-grid {
-      flex: 1;
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      grid-auto-rows: 1fr;
-      gap: 2px;
-    }
-    .day-cell {
-      border: 1px solid #eee;
-      padding: 4px;
-      font-size: 12px;
-      position: relative;
-      cursor: pointer;
-    }
-    .day-cell:hover {
-      background: #fafafa;
-    }
-    .day-number {
-      font-size: 12px;
-      margin-bottom: 2px;
-    }
-    .event-chip {
-      display: block;
-      border-radius: 10px;
-      padding: 2px 4px;
-      font-size: 10px;
-      color: #fff;
-      margin-bottom: 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .event-golf { background: #4caf50; }
-    .event-exam { background: #2196f3; }
-    .event-holiday { background: #f44336; }
-    .event-clinic { background: #9c27b0; }
-    .event-tournament { background: #ff9800; }
-    .event-other { background: #607d8b; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
 
-    /* モーダル */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-    }
-    .modal {
-      background: #fff;
-      border-radius: 8px;
-      padding: 16px;
-      width: 320px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      font-size: 14px;
-    }
-    .modal h3 {
-      margin-bottom: 8px;
-    }
-    .modal label {
-      display: block;
-      margin-top: 8px;
-      font-size: 13px;
-    }
-    .modal input, .modal select, .modal textarea {
-      width: 100%;
-      margin-top: 4px;
-      padding: 4px;
-      font-size: 13px;
-    }
-    .modal textarea {
-      resize: vertical;
-      min-height: 60px;
-    }
-    .modal-buttons {
-      margin-top: 12px;
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-    .modal-buttons button {
-      padding: 4px 10px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-    .danger {
-      background: #f44336;
-      color: #fff;
-      border: none;
-    }
-    .primary {
-      background: #1976d2;
-      color: #fff;
-      border: none;
-    }
-  </style>
+        /* --- レイアウト全体 --- */
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* --- サイドバー --- */
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            background-color: #000;
+            color: #fff;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .sidebar-header i { margin-right: 8px; color: #9ca3af; }
+
+        .sidebar-content {
+            padding: 16px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .menu-label {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            padding-left: 8px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin-bottom: 4px;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+        .menu-item:hover { background-color: #f1f5f9; }
+        .menu-item.active { color: var(--color-purple-study); }
+        .menu-item i { margin-right: 12px; }
+        .text-purple { color: var(--color-purple-study); }
+        .text-orange { color: var(--color-orange-budo); }
+        .text-green { color: var(--color-green-nainai); }
+        .text-blue { color: var(--color-blue); }
+        .text-sky { color: var(--color-sky-work); }
+
+        .divider { height: 1px; background-color: var(--border-color); margin: 16px 0; }
+
+        .tab-group {
+            display: flex;
+            background-color: #fff;
+            padding: 4px;
+            border-radius: 9999px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+        .tab-button {
+            flex: 1;
+            text-align: center;
+            padding: 6px 0;
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-secondary);
+            border-radius: 9999px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+        }
+        .tab-button.active { background-color: #1e293b; color: #fff; }
+
+        .schedule-card {
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .card-title {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            font-size: 14px;
+            gap: 8px;
+        }
+        .card-title i { color: var(--text-secondary); }
+        .card-count {
+            background-color: #f1f5f9;
+            color: var(--text-secondary);
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: bold;
+        }
+        .task-item {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .task-time {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        .no-task {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+            padding: 20px 0;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+        .footer-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding: 8px 0;
+            cursor: pointer;
+        }
+
+        /* --- メインコンテンツ --- */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+            min-width: 0; /* Gridのはみ出し防止 */
+        }
+
+        /* ヘッダー */
+        .main-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .page-title h1 { font-size: 24px; font-weight: bold; }
+        .current-date { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+        .create-btn {
+            background-color: var(--color-blue);
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav-group { display: flex; align-items: center; gap: 8px; }
+        .btn-today {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            background-color: #fff;
+            cursor: pointer;
+        }
+        .nav-arrows {
+            display: flex;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: #fff;
+        }
+        .nav-arrow-btn {
+            padding: 6px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .nav-arrow-btn:first-child { border-right: 1px solid var(--border-color); }
+
+        .view-toggle-group {
+            display: flex;
+            gap: 8px;
+            padding: 4px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        .view-btn {
+            padding: 4px 12px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        .view-btn.active { background-color: var(--color-blue); color: #fff; }
+
+        /* 検索バー */
+        .search-container {
+            padding: 12px 24px;
+            background-color: #fafafa;
+        }
+        .search-input-wrapper {
+            position: relative;
+        }
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px 16px 10px 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 9999px;
+            font-size: 14px;
+            outline: none;
+        }
+        .search-input:focus { border-color: var(--color-blue); }
+
+        /* カレンダーグリッド本体 */
+        .calendar-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background-color: #fafafa;
+        }
+        .calendar-grid-container {
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .weekdays-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .weekday {
+            padding: 12px 0;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-secondary);
+        }
+        .text-red { color: var(--color-red-exam); }
+
+        .calendar-days-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(5, 1fr); /* 5週分 */
+        }
+        .day-cell {
+            border-right: 1px solid #f1f5f9;
+            border-bottom: 1px solid #f1f5f9;
+            padding: 8px;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+        }
+        .day-cell:nth-child(7n) { border-right: none; } /* 右端の線消す */
+        .day-cell.bg-today-cell { background-color: #f8fafc; }
+
+        .day-number {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        .day-number.today {
+            background-color: #334155;
+            color: #fff;
+        }
+
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow-y: auto;
+        }
+        .event-chip {
+            font-size: 10px;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+        }
+
+        /* イベント背景色クラス */
+        .bg-green { background-color: var(--color-green-golf); }
+        .bg-green-dark { background-color: var(--color-green-nainai); }
+        .bg-blue { background-color: var(--color-blue-school); }
+        .bg-sky { background-color: var(--color-sky-work); }
+        .bg-pink { background-color: var(--color-pink-exam); }
+        .bg-orange { background-color: var(--color-orange-budo); }
+        .bg-red { background-color: var(--color-red-exam); }
+        .bg-purple { background-color: var(--color-purple-study); }
+        .bg-dark { background-color: var(--color-dark-clinic); }
+
+    </style>
 </head>
 <body>
-  <div class="app">
+
+<div class="app-container">
     <aside class="sidebar">
-      <h2>今日の予定</h2>
-      <div id="today-events" class="event-list"></div>
-
-      <h2>明日の予定</h2>
-      <div id="tomorrow-events" class="event-list"></div>
-
-      <h2>メモ</h2>
-      <div id="memo-view" class="memo-area"></div>
-
-      <div class="sidebar-buttons">
-        <button id="ai-schedule-btn">AIスケジュール作成</button>
-        <button id="memo-edit-btn">メモ編集</button>
-        <button id="export-btn">エクスポート</button>
-        <button id="import-btn">インポート</button>
-        <button id="clear-btn">全データ削除</button>
-      </div>
+        <div class="sidebar-header">
+            <i data-lucide="chevron-left" width="16"></i>
+            <span>タスク表示</span>
+        </div>
+        <div class="sidebar-content">
+            <div class="menu-section">
+                <p class="menu-label">機能</p>
+                <div class="menu-item active"><i data-lucide="sparkles" class="text-purple" width="18"></i>AI予定作成</div>
+                <div class="menu-item"><i data-lucide="file-text" class="text-orange" width="18"></i>メモ</div>
+                <div class="menu-item"><i data-lucide="upload" class="text-green" width="18"></i>インポート</div>
+                <div class="menu-item"><i data-lucide="download" class="text-blue" width="18"></i>エクスポート</div>
+                <div class="menu-item"><i data-lucide="cloud" class="text-sky" width="18"></i>カレンダー連携</div>
+            </div>
+            <div class="divider"></div>
+            <div class="tab-group">
+                <div class="tab-button active">今日</div>
+                <div class="tab-button">今週</div>
+                <div class="tab-button">今月</div>
+                <div class="tab-button"><i data-lucide="pie-chart" width="14"></i>統計</div>
+            </div>
+            <div class="schedule-cards">
+                <div class="schedule-card">
+                    <div class="card-header">
+                        <div class="card-title"><i data-lucide="calendar" width="16"></i>今日の予定</div>
+                        <div class="card-count">1件</div>
+                    </div>
+                    <div class="task-item">上小田井クリニック</div>
+                    <div class="task-time"><i data-lucide="clock" width="12"></i>00:00</div>
+                </div>
+                <div class="schedule-card">
+                    <div class="card-header">
+                        <div class="card-title"><i data-lucide="calendar" width="16"></i>明日の予定</div>
+                        <div class="card-count">0件</div>
+                    </div>
+                    <div class="no-task">予定なし</div>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar-footer">
+            <div class="footer-item"><i data-lucide="history" width="16"></i>バージョン履歴</div>
+            <div class="footer-item"><i data-lucide="help-circle" width="16"></i>ヘルプ</div>
+            <div class="footer-item"><i data-lucide="settings" width="16"></i>設定</div>
+        </div>
     </aside>
 
-    <main class="main">
-      <header class="top-bar">
-        <div class="month-nav">
-          <button id="prev-month">＜</button>
-          <span id="month-label"></span>
-          <button id="next-month">＞</button>
-        </div>
-        <div class="view-switch">
-          <button class="active">月</button>
-          <button disabled>週</button>
-          <button disabled>日</button>
-        </div>
-      </header>
+    <main class="main-content">
+        <header class="main-header">
+            <div class="header-top">
+                <div class="page-title">
+                    <h1>2026年1月</h1>
+                    <p class="current-date">1月30日(金) 13:39</p>
+                </div>
+                <button class="create-btn"><i data-lucide="plus" width="16"></i>作成</button>
+            </div>
+            <div class="header-controls">
+                <div class="nav-group">
+                    <button class="btn-today">今日</button>
+                    <div class="nav-arrows">
+                        <button class="nav-arrow-btn"><i data-lucide="chevron-left" width="16"></i></button>
+                        <button class="nav-arrow-btn"><i data-lucide="chevron-right" width="16"></i></button>
+                    </div>
+                </div>
+                <div class="view-toggle-group">
+                    <button class="view-btn active">月</button>
+                    <button class="view-btn">週</button>
+                    <button class="view-btn">日</button>
+                </div>
+            </div>
+        </header>
 
-      <section class="calendar">
-        <div class="calendar-header">
-          <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <i data-lucide="search" class="search-icon" width="18"></i>
+                <input type="text" class="search-input" placeholder="イベントを検索...">
+            </div>
         </div>
-        <div id="calendar-grid" class="calendar-grid"></div>
-      </section>
+
+        <div class="calendar-wrapper">
+            <div class="calendar-grid-container">
+                <div class="weekdays-header">
+                    <div class="weekday text-red">日</div>
+                    <div class="weekday">月</div>
+                    <div class="weekday">火</div>
+                    <div class="weekday">水</div>
+                    <div class="weekday">木</div>
+                    <div class="weekday">金</div>
+                    <div class="weekday text-blue">土</div>
+                </div>
+                <div class="calendar-days-grid" id="calendar-grid">
+                    </div>
+            </div>
+        </div>
     </main>
-  </div>
+</div>
 
-  <div id="modal-root"></div>
+<script>
+    // Lucide Icons の初期化
+    lucide.createIcons();
 
-  <script>
-    // ===== データ管理 =====
-    const STORAGE_KEY_EVENTS = "calendar_events_v1";
-    const STORAGE_KEY_MEMO = "calendar_memo_v1";
+    // カレンダーデータ定義 (2026年1月表示用: 2025/12/28 - 2026/1/31)
+    const calendarData = [
+        // 前月(12月)
+        { day: 28, events: [{ title: 'ゴルフ', colorClass: 'bg-green' }] },
+        { day: 29, events: [{ title: 'nainai来るよ', colorClass: 'bg-green-dark' }] },
+        { day: 30, events: [] },
+        { day: 31, events: [] },
+        // 当月(1月)
+        { day: 1, events: [] },
+        { day: 2, events: [] },
+        { day: 3, events: [] },
+        { day: 4, events: [{ title: 'ゴルフ', colorClass: 'bg-green' }] },
+        { day: 5, events: [] },
+        { day: 6, events: [] },
+        { day: 7, events: [{ title: '始業式', colorClass: 'bg-blue' }] },
+        { day: 8, events: [] },
+        { day: 9, events: [] },
+        { day: 10, events: [] },
+        { day: 11, events: [{ title: 'ゴルフ', colorClass: 'bg-green' }] },
+        { day: 12, events: [] },
+        { day: 13, events: [] },
+        { day: 14, events: [] },
+        { day: 15, events: [] },
+        { day: 16, events: [] },
+        { day: 17, events: [] },
+        { day: 18, events: [{ title: 'ゴルフ', colorClass: 'bg-green' }] },
+        { day: 19, events: [] },
+        { day: 20, events: [{ title: '半日', colorClass: 'bg-sky' }] },
+        { day: 21, events: [{ title: '休み', colorClass: 'bg-sky' }] },
+        { day: 22, events: [{ title: '休み', colorClass: 'bg-sky' }] },
+        { day: 23, events: [{ title: '英検間近', colorClass: 'bg-pink' }] },
+        { day: 24, events: [{ title: 'ゴルフ', colorClass: 'bg-green' }, { title: '武道大会', colorClass: 'bg-orange' }] },
+        { day: 25, events: [{ title: '英検当日', colorClass: 'bg-red' }, { title: 'ゴルフ', colorClass: 'bg-green' }] },
+        { day: 26, events: [] },
+        { day: 27, events: [{ title: '英検対策', colorClass: 'bg-purple' }] },
+        { day: 28, events: [{ title: '百人一首大会', colorClass: 'bg-red' }] },
+        { day: 29, events: [{ title: '英検対策', colorClass: 'bg-purple' }] },
+        { day: 30, isToday: true, events: [{ title: '上小田井クリニック', colorClass: 'bg-dark' }] },
+        { day: 31, events: [] },
+    ];
 
-    let events = loadEvents();
-    let memoText = loadMemo();
-
-    let current = new Date();
-    let currentYear = current.getFullYear();
-    let currentMonth = current.getMonth();
-
-    const monthLabel = document.getElementById("month-label");
-    const calendarGrid = document.getElementById("calendar-grid");
-    const todayEventsEl = document.getElementById("today-events");
-    const tomorrowEventsEl = document.getElementById("tomorrow-events");
-    const memoViewEl = document.getElementById("memo-view");
-    const modalRoot = document.getElementById("modal-root");
-
-    document.getElementById("prev-month").addEventListener("click", () => {
-      currentMonth--;
-      if (currentMonth < 0) {
-        currentMonth = 11;
-        currentYear--;
-      }
-      renderCalendar();
-    });
-
-    document.getElementById("next-month").addEventListener("click", () => {
-      currentMonth++;
-      if (currentMonth > 11) {
-        currentMonth = 0;
-        currentYear++;
-      }
-      renderCalendar();
-    });
-
-    document.getElementById("memo-edit-btn").addEventListener("click", () => {
-      const text = prompt("メモを入力してください：", memoText || "");
-      if (text !== null) {
-        memoText = text;
-        saveMemo();
-        renderMemo();
-      }
-    });
-
-    document.getElementById("export-btn").addEventListener("click", () => {
-      const data = {
-        events,
-        memo: memoText,
-      };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "calendar_export.json";
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-
-    document.getElementById("import-btn").addEventListener("click", () => {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = "application/json";
-      input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-          try {
-            const data = JSON.parse(reader.result);
-            if (Array.isArray(data.events)) events = data.events;
-            if (typeof data.memo === "string") memoText = data.memo;
-            saveEvents();
-            saveMemo();
-            renderAll();
-          } catch (err) {
-            alert("インポートに失敗しました。");
-          }
-        };
-        reader.readAsText(file);
-      };
-      input.click();
-    });
-
-    document.getElementById("clear-btn").addEventListener("click", () => {
-      if (confirm("全ての予定とメモを削除しますか？")) {
-        events = [];
-        memoText = "";
-        saveEvents();
-        saveMemo();
-        renderAll();
-      }
-    });
-
-    document.getElementById("ai-schedule-btn").addEventListener("click", () => {
-      runAISchedule();
-    });
-
-    function loadEvents() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY_EVENTS);
-        if (!raw) return [];
-        return JSON.parse(raw);
-      } catch {
-        return [];
-      }
-    }
-
-    function saveEvents() {
-      localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(events));
-    }
-
-    function loadMemo() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY_MEMO);
-        if (!raw) return "";
-        return raw;
-      } catch {
-        return "";
-      }
-    }
-
-    function saveMemo() {
-      localStorage.setItem(STORAGE_KEY_MEMO, memoText || "");
-    }
-
-    // ===== レンダリング =====
+    // カレンダーグリッドを描画する関数
     function renderCalendar() {
-      const firstDay = new Date(currentYear, currentMonth, 1);
-      const lastDay = new Date(currentYear, currentMonth + 1, 0);
-      const startWeekday = firstDay.getDay();
-      const daysInMonth = lastDay.getDate();
+        const gridContainer = document.getElementById('calendar-grid');
+        gridContainer.innerHTML = ''; // 一旦クリア
 
-      monthLabel.textContent = `${currentYear}年 ${currentMonth + 1}月`;
+        calendarData.forEach(data => {
+            // 日付セルを作成
+            const cell = document.createElement('div');
+            cell.className = `day-cell ${data.isToday ? 'bg-today-cell' : ''}`;
 
-      calendarGrid.innerHTML = "";
+            // 日付の数字
+            const dayNumber = document.createElement('div');
+            dayNumber.className = `day-number ${data.isToday ? 'today' : ''}`;
+            dayNumber.textContent = data.day;
+            cell.appendChild(dayNumber);
 
-      for (let i = 0; i < startWeekday; i++) {
-        const cell = document.createElement("div");
-        cell.className = "day-cell";
-        calendarGrid.appendChild(cell);
-      }
+            // イベントリスト
+            const eventsList = document.createElement('div');
+            eventsList.className = 'events-list';
+            
+            data.events.forEach(event => {
+                const chip = document.createElement('div');
+                chip.className = `event-chip ${event.colorClass}`;
+                chip.textContent = event.title;
+                eventsList.appendChild(chip);
+            });
+            cell.appendChild(eventsList);
 
-      for (let day = 1; day <= daysInMonth; day++) {
-        const cell = document.createElement("div");
-        cell.className = "day-cell";
-
-        const num = document.createElement("div");
-        num.className = "day-number";
-        num.textContent = day;
-        cell.appendChild(num);
-
-        const dateStr = formatDate(currentYear, currentMonth + 1, day);
-        const dayEvents = events.filter(e => e.date === dateStr);
-
-        dayEvents.forEach(ev => {
-          const chip = document.createElement("span");
-          chip.className = `event-chip event-${ev.type || "other"}`;
-          chip.textContent = ev.title;
-          cell.appendChild(chip);
+            gridContainer.appendChild(cell);
         });
-
-        cell.addEventListener("click", () => {
-          openEventModal(dateStr);
-        });
-
-        calendarGrid.appendChild(cell);
-      }
-
-      renderSideBar();
     }
 
-    function renderSideBar() {
-      const today = new Date();
-      const todayStr = formatDate(today.getFullYear(), today.getMonth() + 1, today.getDate());
-      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-      const tomorrowStr = formatDate(tomorrow.getFullYear(), tomorrow.getMonth() + 1, tomorrow.getDate());
+    // 初期化実行
+    renderCalendar();
 
-      const todayList = events.filter(e => e.date === todayStr);
-      const tomorrowList = events.filter(e => e.date === tomorrowStr);
-
-      todayEventsEl.innerHTML = todayList.length
-        ? todayList.map(e => `<div class="event-item">${e.title}</div>`).join("")
-        : "<div>予定はありません</div>";
-
-      tomorrowEventsEl.innerHTML = tomorrowList.length
-        ? tomorrowList.map(e => `<div class="event-item">${e.title}</div>`).join("")
-        : "<div>予定はありません</div>";
-    }
-
-    function renderMemo() {
-      memoViewEl.textContent = memoText || "メモはまだありません。";
-    }
-
-    function renderAll() {
-      renderCalendar();
-      renderMemo();
-    }
-
-    // ===== モーダルで予定編集 =====
-    function openEventModal(dateStr) {
-      const dayEvents = events.filter(e => e.date === dateStr);
-
-      const backdrop = document.createElement("div");
-      backdrop.className = "modal-backdrop";
-
-      const modal = document.createElement("div");
-      modal.className = "modal";
-
-      const title = document.createElement("h3");
-      title.textContent = `${dateStr} の予定`;
-      modal.appendChild(title);
-
-      const list = document.createElement("div");
-      if (dayEvents.length === 0) {
-        list.textContent = "予定はありません。";
-      } else {
-        dayEvents.forEach((ev, index) => {
-          const row = document.createElement("div");
-          row.style.marginTop = "6px";
-          row.textContent = `${index + 1}. ${ev.title}`;
-          row.style.cursor = "pointer";
-          row.addEventListener("click", () => {
-            openEditForm(dateStr, ev);
-            backdrop.remove();
-          });
-          list.appendChild(row);
-        });
-      }
-      modal.appendChild(list);
-
-      const addBtn = document.createElement("button");
-      addBtn.textContent = "予定を追加";
-      addBtn.style.marginTop = "10px";
-      addBtn.addEventListener("click", () => {
-        openEditForm(dateStr, null);
-        backdrop.remove();
-      });
-      modal.appendChild(addBtn);
-
-      const closeArea = document.createElement("div");
-      closeArea.className = "modal-buttons";
-      const closeBtn = document.createElement("button");
-      closeBtn.textContent = "閉じる";
-      closeBtn.addEventListener("click", () => backdrop.remove());
-      closeArea.appendChild(closeBtn);
-      modal.appendChild(closeArea);
-
-      backdrop.appendChild(modal);
-      modalRoot.innerHTML = "";
-      modalRoot.appendChild(backdrop);
-    }
-
-    function openEditForm(dateStr, eventObj) {
-      const isEdit = !!eventObj;
-
-      const backdrop = document.createElement("div");
-      backdrop.className = "modal-backdrop";
-
-      const modal = document.createElement("div");
-      modal.className = "modal";
-
-      const title = document.createElement("h3");
-      title.textContent = isEdit ? "予定を編集" : "予定を追加";
-      modal.appendChild(title);
-
-      const labelTitle = document.createElement("label");
-      labelTitle.textContent = "タイトル";
-      const inputTitle = document.createElement("input");
-      inputTitle.value = eventObj ? eventObj.title : "";
-      labelTitle.appendChild(inputTitle);
-      modal.appendChild(labelTitle);
-
-      const labelType = document.createElement("label");
-      labelType.textContent = "種類（色分け）";
-      const selectType = document.createElement("select");
-      const types = [
-        { value: "golf", label: "ゴルフ（緑）" },
-        { value: "exam", label: "英検・勉強（青）" },
-        { value: "holiday", label: "休み（赤）" },
-        { value: "clinic", label: "病院（紫）" },
-        { value: "tournament", label: "大会（オレンジ）" },
-        { value: "other", label: "その他（グレー）" },
-      ];
-      types.forEach(t => {
-        const opt = document.createElement("option");
-        opt.value = t.value;
-        opt.textContent = t.label;
-        if (eventObj && eventObj.type === t.value) opt.selected = true;
-        selectType.appendChild(opt);
-      });
-      labelType.appendChild(selectType);
-      modal.appendChild(labelType);
-
-      const labelMemo = document.createElement("label");
-      labelMemo.textContent = "メモ（任意）";
-      const textareaMemo = document.createElement("textarea");
-      textareaMemo.value = eventObj ? (eventObj.note || "") : "";
-      labelMemo.appendChild(textareaMemo);
-      modal.appendChild(labelMemo);
-
-      const btnArea = document.createElement("div");
-      btnArea.className = "modal-buttons";
-
-      if (isEdit) {
-        const delBtn = document.createElement("button");
-        delBtn.textContent = "削除";
-        delBtn.className = "danger";
-        delBtn.addEventListener("click", () => {
-          if (confirm("この予定を削除しますか？")) {
-            events = events.filter(e => e !== eventObj);
-            saveEvents();
-            renderAll();
-            backdrop.remove();
-          }
-        });
-        btnArea.appendChild(delBtn);
-      }
-
-      const cancelBtn = document.createElement("button");
-      cancelBtn.textContent = "キャンセル";
-      cancelBtn.addEventListener("click", () => backdrop.remove());
-      btnArea.appendChild(cancelBtn);
-
-      const saveBtn = document.createElement("button");
-      saveBtn.textContent = "保存";
-      saveBtn.className = "primary";
-      saveBtn.addEventListener("click", () => {
-        const titleVal = inputTitle.value.trim();
-        if (!titleVal) {
-          alert("タイトルを入力してください。");
-          return;
-        }
-        const newEvent = {
-          id: eventObj ? eventObj.id : generateId(),
-          date: dateStr,
-          title: titleVal,
-          type: selectType.value,
-          note: textareaMemo.value.trim(),
-        };
-        if (isEdit) {
-          events = events.map(e => e.id === eventObj.id ? newEvent : e);
-        } else {
-          events.push(newEvent);
-        }
-        saveEvents();
-        renderAll();
-        backdrop.remove();
-      });
-      btnArea.appendChild(saveBtn);
-
-      modal.appendChild(btnArea);
-      backdrop.appendChild(modal);
-      modalRoot.innerHTML = "";
-      modalRoot.appendChild(backdrop);
-    }
-
-    // ===== AIスケジュール（簡易版） =====
-    function runAISchedule() {
-      const keyword = prompt("どんな予定を自動で入れますか？（例：英検対策）", "英検対策");
-      if (!keyword) return;
-
-      const countStr = prompt("何回入れますか？（例：5）", "5");
-      const count = parseInt(countStr, 10);
-      if (!count || count <= 0) return;
-
-      const today = new Date();
-      let added = 0;
-      let dayCursor = new Date(today);
-
-      while (added < count && added < 60) {
-        const dateStr = formatDate(dayCursor.getFullYear(), dayCursor.getMonth() + 1, dayCursor.getDate());
-        const isWeekend = dayCursor.getDay() === 0 || dayCursor.getDay() === 6;
-        const hasEvent = events.some(e => e.date === dateStr);
-
-        if (!hasEvent && !isWeekend) {
-          events.push({
-            id: generateId(),
-            date: dateStr,
-            title: keyword,
-            type: "exam",
-            note: "AIスケジュールで自動追加",
-          });
-          added++;
-        }
-        dayCursor.setDate(dayCursor.getDate() + 1);
-      }
-
-      saveEvents();
-      renderAll();
-      alert(`${added}件の予定を自動で追加しました。`);
-    }
-
-    // ===== ユーティリティ =====
-    function formatDate(y, m, d) {
-      return [
-        y,
-        String(m).padStart(2, "0"),
-        String(d).padStart(2, "0"),
-      ].join("-");
-    }
-
-    function generateId() {
-      return "ev_" + Math.random().toString(36).slice(2, 10);
-    }
-
-    // 初期描画
-    renderAll();
-  </script>
+</script>
 </body>
 </html>
