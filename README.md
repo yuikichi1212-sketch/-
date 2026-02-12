@@ -68,7 +68,7 @@
 <body>
 
 <div class="container">
-    <h2>📝 Simple Memo</h2>
+    <h2>Memo</h2>
     <textarea id="memoArea" placeholder="ここにメモを書いてください..."></textarea>
     
     <div class="controls">
