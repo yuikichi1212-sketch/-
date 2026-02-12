@@ -3,112 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>メモ</title>
+    <title>Advanced Web Memo</title>
     <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --sidebar-bg: #252526;
+            --text-color: #d4d4d4;
+            --accent-color: #007acc;
+            --border-color: #3c3c3c;
+        }
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f5f5f7;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             display: flex;
-            justify-content: center;
+            height: 100vh;
+        }
+        /* サイドバー */
+        #sidebar {
+            width: 250px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
             padding: 20px;
-        }
-        .container {
-            width: 100%;
-            max-width: 600px;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        h2 {
-            color: #333;
-            margin-top: 0;
-            border-bottom: 2px solid #007aff;
-            padding-bottom: 10px;
-        }
-        textarea {
-            width: 100%;
-            height: 300px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            font-size: 16px;
-            box-sizing: border-box;
-            resize: vertical;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-        textarea:focus {
-            border-color: #007aff;
-        }
-        .controls {
-            margin-top: 15px;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
+        #memo-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .memo-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .memo-item:hover { background-color: #2a2d2e; }
+        .memo-item.active { background-color: #37373d; border-left: 4px solid var(--accent-color); }
+
+        /* メインエリア */
+        #main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        #memo-title {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            outline: none;
+        }
+        #editor {
+            flex-grow: 1;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            padding: 15px;
+            font-size: 16px;
+            resize: none;
+            outline: none;
+            line-height: 1.6;
+        }
+        .toolbar {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
         button {
-            background-color: #ff3b30;
+            background: var(--accent-color);
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 8px 15px;
+            border-radius: 4px;
             cursor: pointer;
-            font-weight: bold;
+            font-size: 13px;
         }
-        button:hover {
-            background-color: #d32f2f;
-        }
-        .status {
-            font-size: 12px;
-            color: #888;
-        }
+        button.delete { background: #a31515; }
+        button:hover { opacity: 0.8; }
+        .info { font-size: 12px; color: #888; margin-left: auto; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Memo</h2>
-    <textarea id="memoArea" placeholder="ここにメモを書いてください..."></textarea>
-    
-    <div class="controls">
-        <span class="status" id="statusMsg">自動保存中...</span>
-        <button onclick="clearMemo()">内容を全消去</button>
+<div id="sidebar">
+    <div class="sidebar-header">
+        🗒 My Memos
+        <button onclick="createNewMemo()">＋</button>
+    </div>
+    <ul id="memo-list"></ul>
+</div>
+
+<div id="main">
+    <input type="text" id="memo-title" placeholder="タイトル未設定">
+    <textarea id="editor" placeholder="内容を入力してください..."></textarea>
+    <div class="toolbar">
+        <button onclick="downloadMemo()">⬇ ダウンロード</button>
+        <button class="delete" onclick="deleteMemo()">🗑 削除</button>
+        <div class="info" id="char-count">0 文字</div>
     </div>
 </div>
 
 <script>
-    const memoArea = document.getElementById('memoArea');
-    const statusMsg = document.getElementById('statusMsg');
+    let memos = JSON.parse(localStorage.getItem('web_memos')) || [
+        { id: Date.now(), title: '最初のメモ', content: 'ここに内容を書けます。' }
+    ];
+    let currentMemoId = memos[0].id;
 
-    // 1. ページ読み込み時に保存された内容を出す
-    window.onload = () => {
-        const savedMemo = localStorage.getItem('myMemo');
-        if (savedMemo) {
-            memoArea.value = savedMemo;
-        }
-    };
+    const listEl = document.getElementById('memo-list');
+    const editorEl = document.getElementById('editor');
+    const titleEl = document.getElementById('memo-title');
+    const charCountEl = document.getElementById('char-count');
 
-    // 2. 入力されるたびに保存する
-    memoArea.addEventListener('input', () => {
-        localStorage.setItem('myMemo', memoArea.value);
-        statusMsg.innerText = "保存されました ";
-        
-        // 2秒後にメッセージを戻す
-        setTimeout(() => {
-            statusMsg.innerText = "自動保存中...";
-        }, 2000);
-    });
+    function init() {
+        renderList();
+        loadMemo(currentMemoId);
+    }
 
-    // 3. 全消去機能
-    function clearMemo() {
-        if (confirm('本当に全てのメモを消去しますか？')) {
-            memoArea.value = '';
-            localStorage.removeItem('myMemo');
-            statusMsg.innerText = "消去しました";
+    function renderList() {
+        listEl.innerHTML = '';
+        memos.forEach(memo => {
+            const li = document.createElement('li');
+            li.className = `memo-item ${memo.id === currentMemoId ? 'active' : ''}`;
+            li.innerText = memo.title || '無題のメモ';
+            li.onclick = () => loadMemo(memo.id);
+            listEl.appendChild(li);
+        });
+    }
+
+    function loadMemo(id) {
+        currentMemoId = id;
+        const memo = memos.find(m => m.id === id);
+        titleEl.value = memo.title;
+        editorEl.value = memo.content;
+        updateCharCount();
+        renderList();
+    }
+
+    function save() {
+        const memo = memos.find(m => m.id === currentMemoId);
+        if (memo) {
+            memo.title = titleEl.value;
+            memo.content = editorEl.value;
+            localStorage.setItem('web_memos', JSON.stringify(memos));
+            renderList();
+            updateCharCount();
         }
     }
-</script>
 
+    function createNewMemo() {
+        const newMemo = { id: Date.now(), title: '新しいメモ', content: '' };
+        memos.unshift(newMemo);
+        loadMemo(newMemo.id);
+    }
+
+    function deleteMemo() {
+        if (memos.length <= 1) return alert('最後のメモは削除できません');
+        if (confirm('このメモを削除しますか？')) {
+            memos = memos.filter(m => m.id !== currentMemoId);
+            currentMemoId = memos[0].id;
+            save();
+            loadMemo(currentMemoId);
+        }
+    }
+
+    function downloadMemo() {
+        const blob = new Blob([editorEl.value], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${titleEl.value || 'memo'}.txt`;
+        a.click();
+    }
+
+    function updateCharCount() {
+        charCountEl.innerText = `${editorEl.value.length} 文字`;
+    }
+
+    titleEl.addEventListener('input', save);
+    editorEl.addEventListener('input', save);
+
+    init();
+</script>
 </body>
 </html>
